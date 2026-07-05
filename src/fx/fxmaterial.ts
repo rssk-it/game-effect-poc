@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import gsap from 'gsap'
 
 /**
  * エフェクトメッシュ用の汎用シェーダマテリアル。
@@ -18,12 +19,17 @@ void main() {
 
 const FRAG = /* glsl */ `
 uniform sampler2D uMap;
+uniform sampler2D uMap2;
 uniform vec3 uColor;
 uniform vec3 uEdgeColor;
 uniform float uOpacity;
 uniform float uTime;
 uniform vec2 uScroll;
 uniform vec2 uRepeat;
+uniform vec2 uScroll2;
+uniform vec2 uRepeat2;
+uniform float uLayerMix;
+uniform float uDistort;
 uniform float uDissolve;
 uniform float uDissolveSoft;
 uniform float uFadeTop;
@@ -47,8 +53,24 @@ float vnoise(vec2 p) {
 }
 
 void main() {
-  vec2 uv = vUv * uRepeat + uScroll * uTime;
+  // UV歪み: ノイズで揺らめかせる（熱・水・エネルギーの揺らぎ）
+  vec2 baseUv = vUv;
+  if (uDistort > 0.0) {
+    float dn = vnoise(vUv * 3.5 + uTime * 0.55);
+    float dn2 = vnoise(vUv * 7.0 - uTime * 0.4);
+    baseUv += vec2(dn - 0.5, dn2 - 0.5) * uDistort;
+  }
+
+  vec2 uv = baseUv * uRepeat + uScroll * uTime;
   vec3 tex = texture2D(uMap, uv).rgb;
+
+  // 第2テクスチャレイヤ: 独立スクロールの「光の流れ」を乗算合成
+  if (uLayerMix > 0.0) {
+    vec3 tex2 = texture2D(uMap2, baseUv * uRepeat2 + uScroll2 * uTime).rgb;
+    float lum2 = dot(tex2, vec3(0.299, 0.587, 0.114));
+    tex *= mix(vec3(1.0), vec3(lum2 * 1.9 + 0.15), uLayerMix);
+  }
+
   float lum = dot(tex, vec3(0.299, 0.587, 0.114));
   // 彩度除去: 色替えバリアント用（輝度×tint で色が濁らない）
   tex = mix(tex, vec3(lum), uDesaturate);
@@ -84,6 +106,14 @@ export interface FxMaterialOptions {
   /** UVスクロール速度 (u/秒, v/秒) */
   scroll?: [number, number]
   repeat?: [number, number]
+  /** 第2テクスチャレイヤ（光の流れ）。layerMix > 0 で有効 */
+  map2?: THREE.Texture
+  scroll2?: [number, number]
+  repeat2?: [number, number]
+  /** 第2レイヤの乗算強度 0〜1 */
+  layerMix?: number
+  /** ノイズによるUV歪み強度（0.03〜0.1程度） */
+  distort?: number
   dissolveSoft?: number
   /** V=1 側のフェード幅 (0で無効) */
   fadeTop?: number
@@ -104,12 +134,17 @@ export class FxMaterial extends THREE.ShaderMaterial {
       fragmentShader: FRAG,
       uniforms: {
         uMap: { value: o.map },
+        uMap2: { value: o.map2 ?? o.map },
         uColor: { value: new THREE.Color(o.color ?? 0xffffff) },
         uEdgeColor: { value: new THREE.Color(o.edgeColor ?? 0x000000) },
         uOpacity: { value: o.opacity ?? 1 },
         uTime: { value: 0 },
         uScroll: { value: new THREE.Vector2(...(o.scroll ?? [0, 0])) },
         uRepeat: { value: new THREE.Vector2(...(o.repeat ?? [1, 1])) },
+        uScroll2: { value: new THREE.Vector2(...(o.scroll2 ?? [0, 0])) },
+        uRepeat2: { value: new THREE.Vector2(...(o.repeat2 ?? [1, 1])) },
+        uLayerMix: { value: o.layerMix ?? 0 },
+        uDistort: { value: o.distort ?? 0 },
         uDissolve: { value: 0 },
         uDissolveSoft: { value: o.dissolveSoft ?? 0.12 },
         uFadeTop: { value: o.fadeTop ?? 0 },
@@ -143,5 +178,26 @@ export class FxMaterial extends THREE.ShaderMaterial {
   }
   set opacity2(v: number) {
     this.uniforms.uOpacity.value = v
+  }
+
+  /** tint色uniform（gsapでr/g/bを直接tweenできる） */
+  get tint(): THREE.Color {
+    return this.uniforms.uColor.value as THREE.Color
+  }
+}
+
+/**
+ * 色のキーフレームアニメーション。stops の色を duration 全体に等間隔で並べ、
+ * 順に遷移させる（例: 白 → 橙 → 暗赤 で「熱が冷める」表現）。
+ */
+export function colorRamp(mat: FxMaterial, stops: THREE.ColorRepresentation[], duration: number, delay = 0): void {
+  if (stops.length === 0) return
+  mat.tint.set(stops[0])
+  if (stops.length === 1) return
+  const step = duration / (stops.length - 1)
+  const tl = gsap.timeline({ delay })
+  for (let i = 1; i < stops.length; i++) {
+    const c = new THREE.Color(stops[i])
+    tl.to(mat.tint, { r: c.r, g: c.g, b: c.b, duration: step, ease: 'power1.inOut' })
   }
 }
