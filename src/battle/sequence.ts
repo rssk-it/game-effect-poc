@@ -2,9 +2,9 @@ import * as THREE from 'three'
 import gsap from 'gsap'
 import type { World } from '../world'
 import { sleep, hitStop, setTimeScale } from '../core/time'
-import { slashArc } from '../fx/slash'
-import { hitSpark, glowPop, groundShockwave, airShockwave, dustPuff } from '../fx/impact'
+import { hitSpark, glowPop, airShockwave, dustPuff } from '../fx/impact'
 import { MagicCircle, chargeParticles, fireBeam } from '../fx/magic'
+import { SlashTrail, FireVortex, Shockwave3D, GroundCrack, HolyPillar, LightMotes } from '../fx/rich'
 import { ParticleBurst } from '../fx/particles'
 import { glowTexture, sparkTexture } from '../fx/textures'
 
@@ -95,7 +95,7 @@ async function intro(world: World): Promise<void> {
 // ---------------------------------------------------------------- 騎士
 
 async function knightTurn(world: World): Promise<void> {
-  const { rig, hud, chars, fx, scene, tex } = world
+  const { rig, hud, chars, fx, scene } = world
   const { knight, boss } = chars
 
   hud.setActing(0)
@@ -118,19 +118,19 @@ async function knightTurn(world: World): Promise<void> {
   await sleep(0.42)
   dustPuff(fx, knight.position, 1, 1)
 
-  // 3連斬撃
+  // 3連斬撃（Blender製トレイルメッシュの回転スイープ）
   const hits = [
-    { dmg: 1180, angle: -0.5, mirror: false, crit: false },
-    { dmg: 1345, angle: 0.6, mirror: true, crit: false },
-    { dmg: 2890, angle: 0.05, mirror: false, crit: true },
+    { dmg: 1180, roll: 0.9, mirror: false, crit: false },
+    { dmg: 1345, roll: -0.75, mirror: true, crit: false },
+    { dmg: 2890, roll: 0.12, mirror: false, crit: true },
   ]
   for (const hit of hits) {
     const target = boss.chest(0.45)
-    slashArc(scene, tex.slash, target, {
-      angle: hit.angle,
-      scale: hit.crit ? 5.2 : 3.8,
+    new SlashTrail(fx, world.fxAssets, target, {
+      roll: hit.roll,
       mirror: hit.mirror,
-      color: hit.crit ? 0xcfe0ff : 0xffffff,
+      scale: hit.crit ? 5 : 3.6,
+      color: hit.crit ? 0xcfe4ff : 0x9ed4ff,
     })
     hitSpark(fx, target, 0x9ec8ff, hit.crit ? 1.6 : 1)
     boss.tintRed(0.25)
@@ -141,7 +141,7 @@ async function knightTurn(world: World): Promise<void> {
     hitStop(hit.crit ? 130 : 70)
     if (hit.crit) {
       knight.flashWhite(0.7, 0.3)
-      groundShockwave(scene, boss.position, 0x86b8ff, 8, 0.55)
+      new Shockwave3D(fx, world.fxAssets, boss.position, { maxScale: 8, color: 0x86b8ff, crack: true })
     }
     await sleep(0.34)
   }
@@ -158,7 +158,7 @@ async function knightTurn(world: World): Promise<void> {
 // ---------------------------------------------------------------- ボス
 
 async function bossTurn(world: World): Promise<void> {
-  const { rig, hud, chars, fx, scene, tex } = world
+  const { rig, hud, chars, fx, scene } = world
   const { boss } = chars
   const allies = [chars.knight, chars.tank, chars.mage]
 
@@ -186,7 +186,15 @@ async function bossTurn(world: World): Promise<void> {
   dustPuff(fx, boss.position, -1, 1.6)
 
   // なぎ払い: 巨大な赤い斬撃が味方全員を打つ
-  slashArc(scene, tex.slash, new THREE.Vector3(-6.5, 2.4, 0.5), { angle: 0.35, scale: 9, mirror: true, color: 0xff6a52, duration: 0.36 })
+  new SlashTrail(fx, world.fxAssets, new THREE.Vector3(-6.5, 2.4, 0.5), {
+    roll: 0.3,
+    mirror: true,
+    scale: 8.5,
+    color: 0xff5a3a,
+    edgeColor: 0xffc9a0,
+    duration: 0.55,
+    desaturate: 1,
+  })
   hud.flash(0.35, 0.3, '#ff2a1a')
   rig.doShake(0.4, 0.7)
   rig.fovPunch(6, 0.5)
@@ -235,7 +243,7 @@ async function tankTurn(world: World): Promise<void> {
   const target = boss.chest(0.4)
   glowPop(scene, target, 0xffd27a, 3.4, 0.3)
   hitSpark(fx, target, 0xffcf7a, 1.7)
-  groundShockwave(scene, boss.position, 0xffb54d, 11, 0.7)
+  new Shockwave3D(fx, world.fxAssets, boss.position, { maxScale: 10, color: 0xffb54d, crack: true, duration: 0.75 })
   boss.tintRed(0.35)
   boss.knockback(1, 1.1, 0.6)
   hud.damageBoss(0.12)
@@ -271,12 +279,19 @@ async function mageUltimate(world: World): Promise<void> {
   // カットイン
   await hud.playCutin()
 
-  // 詠唱: 魔法陣 + 収束パーティクル
+  // 詠唱: 魔法陣 + 収束パーティクル + 紫の詠唱光柱
   const circle = new MagicCircle(fx, tex.magicCircle, mage.position, 6)
   circle.appear(0.7)
   hud.showSkillBanner('虚空魔嵐', { sub: 'VOID TEMPEST', ultimate: true, hold: 1.6 })
   const chest = mage.chest(0.4) // 顔に光球が被らないよう胸元に
   chargeParticles(fx, chest)
+  new HolyPillar(fx, world.fxAssets, mage.position, {
+    scale: 1.25,
+    duration: 2.6,
+    color: 0x8a5cff,
+    innerColor: 0xe4ccff,
+    gather: false,
+  })
   mage.flashWhite(0.35, 0.5)
 
   // ゆっくり寄りながらチャージが極まる
@@ -301,6 +316,16 @@ async function mageUltimate(world: World): Promise<void> {
   const beamFrom = mage.chest(0.5)
   const beamTo = boss.chest(0.45)
   fireBeam(scene, beamFrom, beamTo, { coreColor: 0xffffff, outerColor: 0xa64dff, radius: 0.8, duration: 1.7 })
+  // 着弾点に虚空の渦（竜巻メッシュの紫バリアント）
+  new FireVortex(fx, world.fxAssets, boss.position, {
+    scale: 1.9,
+    duration: 2.1,
+    color: 0x4a1cb8,
+    innerColor: 0x8a4cff,
+    edgeColor: 0xc9a6ff,
+    embers: false,
+    desaturate: 1,
+  })
   rig.doShake(0.34, 1.6)
   boss.tintRed(1.4)
 
@@ -315,7 +340,8 @@ async function mageUltimate(world: World): Promise<void> {
   // フィニッシュの一撃
   hud.flash(1, 0.7)
   glowPop(scene, boss.chest(0.5), 0xffffff, 8, 0.7)
-  groundShockwave(scene, boss.position, 0xc27bff, 14, 0.9)
+  new Shockwave3D(fx, world.fxAssets, boss.position, { maxScale: 13, color: 0xc27bff, crack: true, duration: 0.9 })
+  new GroundCrack(fx, world.fxAssets, boss.position, { scale: 9, duration: 2.4, color: 0xb886ff, desaturate: 1 })
   hud.damageBoss(1)
   hud.spawnDamage(boss.chest(0.9), 32768, 'ultimate')
   rig.fovPunch(10, 0.6)
@@ -366,29 +392,22 @@ async function mageUltimate(world: World): Promise<void> {
 // ---------------------------------------------------------------- 勝利
 
 async function victory(world: World): Promise<void> {
-  const { rig, hud, chars, fx, scene } = world
+  const { rig, hud, chars, fx } = world
 
   // パーティの凱旋ショットへゆっくり引く
   rig.moveTo(new THREE.Vector3(-3, 3.2, 14), new THREE.Vector3(-7, 2.2, 0), 1.6, 'power2.inOut')
   await sleep(0.7)
 
-  // 勝利の金色パーティクル
+  // 勝利: 光の粒がふわっと立ちのぼる控えめな演出
   for (const c of [chars.knight, chars.tank, chars.mage]) {
     c.flashWhite(0.35, 0.8)
-    fx.add(
-      new ParticleBurst(scene, {
-        texture: glowTexture(),
-        position: c.chest(0.5),
-        count: 26,
-        colorA: 0xfff3c4,
-        colorB: 0xffc23e,
-        size: 0.3,
-        speed: [1, 3.2],
-        gravity: -0.9,
-        drag: 1.2,
-        life: [0.8, 1.8],
-      }),
-    )
+    new LightMotes(fx, c.position, {
+      count: 30,
+      radius: 1.2,
+      colorA: 0xfff7d9,
+      colorB: 0xffc86a,
+      stagger: 1.3,
+    })
   }
   chars.knight.hop(0.5, 0.4)
   chars.tank.hop(0.4, 0.42)

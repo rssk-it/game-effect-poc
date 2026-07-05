@@ -1,0 +1,129 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #06070c;
+  color: #dfe6f5;
+  font-family: 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+  overflow: hidden;
+}
+
+#viewer-root {
+  position: fixed;
+  inset: 0;
+}
+
+#fx-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#fx-panel {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  width: 250px;
+  padding: 16px;
+  background: rgba(10, 13, 24, 0.82);
+  border: 1px solid rgba(120, 150, 255, 0.22);
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  user-select: none;
+}
+
+#fx-panel h1 {
+  font-size: 15px;
+  letter-spacing: 0.28em;
+  color: #9fb8ff;
+  margin-bottom: 4px;
+}
+
+#fx-panel .hint {
+  font-size: 10.5px;
+  color: #7a86a8;
+  margin-bottom: 12px;
+}
+
+#fx-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+#fx-buttons button,
+#replay {
+  appearance: none;
+  border: 1px solid rgba(120, 150, 255, 0.25);
+  background: rgba(38, 48, 82, 0.55);
+  color: #dfe6f5;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+#fx-buttons button:hover,
+#replay:hover {
+  background: rgba(70, 90, 150, 0.65);
+}
+
+#fx-buttons button.active {
+  border-color: #9fb8ff;
+  background: rgba(90, 115, 190, 0.7);
+}
+
+#fx-buttons button .en {
+  display: block;
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  color: #8fa4d8;
+}
+
+.ctrl {
+  margin-bottom: 10px;
+  font-size: 11.5px;
+  color: #aab6d4;
+}
+
+.ctrl label {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.ctrl input[type='range'] {
+  width: 100%;
+}
+
+.ctrl.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ctrl.row label {
+  margin: 0;
+}
+
+#replay {
+  text-align: center;
+  padding: 5px 12px;
+}
+
+.desc {
+  font-size: 11px;
+  line-height: 1.55;
+  color: #93a0c2;
+  border-top: 1px solid rgba(120, 150, 255, 0.15);
+  padding-top: 10px;
+  min-height: 48px;
+}

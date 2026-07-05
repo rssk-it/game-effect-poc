@@ -8,6 +8,7 @@ import { CameraRig } from './camera/rig'
 import { Stage } from './scene/stage'
 import { Character } from './scene/character'
 import { FxManager } from './fx/particles'
+import { loadFxAssets } from './fx/assets'
 import { Hud } from './ui/hud'
 import { getTimeScale } from './core/time'
 import { placeCharacters, runBattleLoop } from './battle/sequence'
@@ -32,16 +33,19 @@ async function boot(): Promise<void> {
 
   // ---- テクスチャ一括ロード ----
   const loader = new THREE.TextureLoader()
-  const [knightTex, mageTex, tankTex, bossTex, groundTex, backdropTex, magicCircleTex, slashTex] =
+  const [[knightTex, mageTex, tankTex, bossTex, groundTex, backdropTex, magicCircleTex, slashTex], fxAssets] =
     await Promise.all([
-      loadTexture(loader, '/assets/knight.png'),
-      loadTexture(loader, '/assets/mage.png'),
-      loadTexture(loader, '/assets/tank.png'),
-      loadTexture(loader, '/assets/boss-enemy.png'),
-      loadTexture(loader, '/assets/ground-tile.png'),
-      loadTexture(loader, '/assets/bg-panorama.png'),
-      loadTexture(loader, '/assets/magic-circle.png'),
-      loadTexture(loader, '/assets/slash-arc.png'),
+      Promise.all([
+        loadTexture(loader, '/assets/knight.png'),
+        loadTexture(loader, '/assets/mage.png'),
+        loadTexture(loader, '/assets/tank.png'),
+        loadTexture(loader, '/assets/boss-enemy.png'),
+        loadTexture(loader, '/assets/ground-tile.png'),
+        loadTexture(loader, '/assets/bg-panorama.png'),
+        loadTexture(loader, '/assets/magic-circle.png'),
+        loadTexture(loader, '/assets/slash-arc.png'),
+      ]),
+      loadFxAssets(),
     ])
 
   // ---- シーン構築 ----
@@ -61,7 +65,7 @@ async function boot(): Promise<void> {
     { name: 'MAGE', portrait: '/assets/mage.png' },
   ])
 
-  const world: World = { scene, rig, stage, fx, hud, chars, tex: { slash: slashTex, magicCircle: magicCircleTex } }
+  const world: World = { scene, rig, stage, fx, hud, chars, tex: { slash: slashTex, magicCircle: magicCircleTex }, fxAssets }
   placeCharacters(world)
 
   // ---- ポストプロセス ----
