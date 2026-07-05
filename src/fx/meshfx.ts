@@ -2,18 +2,18 @@ import * as THREE from 'three'
 import { FxManager, type Updatable } from './particles'
 import type { FxMaterial } from './fxmaterial'
 import { glowTexture } from './textures'
+import { _setWireframeFlag, isWireframeOn } from './wire-state'
 
 /** ワイヤーフレーム表示（ビューアのデバッグ用）。生存中のFXにも即時反映される。 */
-let wireframeEnabled = false
 const activeFx = new Set<MeshFx>()
 
 export function setFxWireframe(enabled: boolean): void {
-  wireframeEnabled = enabled
+  _setWireframeFlag(enabled)
   for (const fx of activeFx) fx.setWireframe(enabled)
 }
 
 export function getFxWireframe(): boolean {
-  return wireframeEnabled
+  return isWireframeOn()
 }
 
 /**
@@ -28,6 +28,7 @@ export abstract class MeshFx implements Updatable {
   protected mats: FxMaterial[] = []
   protected meshes: THREE.Mesh[] = []
   private wires: THREE.Mesh[] = []
+  private wired = new Set<THREE.Mesh>()
   private wireMat: THREE.MeshBasicMaterial | null = null
   /** GLB共有ジオメトリと違い、インスタンス固有に生成したジオメトリは破棄が必要 */
   private ownedGeos: THREE.BufferGeometry[] = []
@@ -46,6 +47,17 @@ export abstract class MeshFx implements Updatable {
     this.group.add(mesh)
     this.mats.push(mat)
     this.meshes.push(mesh)
+    if (isWireframeOn()) this.setWireframe(true) // start() 後に追加されるメッシュにもワイヤーを付ける
+    return mesh
+  }
+
+  /** FxMaterial以外のマテリアルで描くメッシュ（落雷のチューブ等）を追加する。 */
+  protected addPlainMesh(geo: THREE.BufferGeometry, mat: THREE.Material, renderOrder = 7): THREE.Mesh {
+    const mesh = new THREE.Mesh(this.ownGeometry(geo), this.ownMaterial(mat))
+    mesh.renderOrder = renderOrder
+    this.group.add(mesh)
+    this.meshes.push(mesh)
+    if (isWireframeOn()) this.setWireframe(true)
     return mesh
   }
 
@@ -67,6 +79,11 @@ export abstract class MeshFx implements Updatable {
     return res
   }
 
+  /** group に直接追加した要素（ParticleField等）へワイヤーフレーム状態を再適用する。 */
+  protected refreshWireframe(): void {
+    if (isWireframeOn()) this.setWireframe(true)
+  }
+
   /** グロースプライト（ビルボード）をグループに追加する簡易エミッター。 */
   protected addGlowSprite(color: THREE.ColorRepresentation, scaleX: number, scaleY: number, opacity = 1): THREE.Sprite {
     const sprite = new THREE.Sprite(
@@ -84,36 +101,49 @@ export abstract class MeshFx implements Updatable {
     sprite.scale.set(scaleX, scaleY, 1)
     sprite.renderOrder = 6
     this.group.add(sprite)
+    if (isWireframeOn()) sprite.material.visible = false
     return sprite
   }
 
-  /** 各FXメッシュの子としてワイヤー用メッシュを付け外しする（トランスフォームを継承）。 */
+  /**
+   * ワイヤーフレーム表示の付け外し。
+   * ON の間はマテリアル描画（発光テクスチャ・スプライト・パーティクル）を隠し、
+   * メッシュ構造だけを見せる。start() 後に増えたメッシュにも追従する。
+   */
   setWireframe(enabled: boolean): void {
-    if (enabled && this.wires.length === 0) {
+    if (enabled) {
       this.wireMat ??= new THREE.MeshBasicMaterial({
         wireframe: true,
         color: 0x6cff9e,
         transparent: true,
-        opacity: 0.4,
+        opacity: 0.55,
         depthWrite: false,
       })
       for (const mesh of this.meshes) {
+        if (this.wired.has(mesh)) continue
         const wire = new THREE.Mesh(mesh.geometry, this.wireMat)
         wire.renderOrder = 9
         mesh.add(wire)
         this.wires.push(wire)
+        this.wired.add(mesh)
       }
-    } else if (!enabled && this.wires.length > 0) {
+    } else if (this.wires.length > 0) {
       for (const wire of this.wires) wire.removeFromParent()
       this.wires = []
+      this.wired.clear()
     }
+    // メッシュのみ表示: ワイヤー以外の全マテリアルの描画を切り替える
+    this.group.traverse((obj) => {
+      const mat = (obj as THREE.Mesh).material as THREE.Material | undefined
+      if (mat && mat !== this.wireMat) mat.visible = !enabled
+    })
   }
 
   protected start(): void {
     this.fx.scene.add(this.group)
     this.fx.add(this)
     activeFx.add(this)
-    if (wireframeEnabled) this.setWireframe(true)
+    if (isWireframeOn()) this.setWireframe(true)
   }
 
   kill(): void {

@@ -4,6 +4,7 @@ import { glowTexture } from './textures'
 import { FxManager, ParticleBurst, type Updatable } from './particles'
 import { FxMaterial } from './fxmaterial'
 import { glowPop } from './impact'
+import { isWireframeOn } from './wire-state'
 
 /**
  * 足元の魔法陣。appear → (回転し続ける) → dismiss。
@@ -34,6 +35,9 @@ export class MagicCircle implements Updatable {
     this.mesh.position.set(pos.x, 0.08, pos.z)
     this.mesh.scale.setScalar(0.1)
     this.mesh.renderOrder = 3
+    // ワイヤーフレーム確認中は発光オーバーレイを描かない（ビューアのトグルにも追従させる）
+    this.mesh.userData.fxOverlay = true
+    this.material.visible = !isWireframeOn()
     this.scene.add(this.mesh)
     fx.add(this)
   }
@@ -122,6 +126,10 @@ export function fireBeam(
   })
   const core = new THREE.Mesh(new THREE.CylinderGeometry(radius * 0.45, radius * 0.45, length, 20, 1, true), coreMat)
   const outer = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, length, 20, 1, true), outerMat)
+  // ワイヤーフレーム確認中は発光ビームを描かない（ビューアのトグルにも追従させる）
+  core.userData.fxOverlay = true
+  outer.userData.fxOverlay = true
+  coreMat.visible = outerMat.visible = !isWireframeOn()
   core.renderOrder = 8
   outer.renderOrder = 8
   group.add(core, outer)

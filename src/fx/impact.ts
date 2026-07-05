@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import gsap from 'gsap'
 import { glowTexture, sparkTexture } from './textures'
 import { FxManager, ParticleBurst } from './particles'
+import { isWireframeOn } from './wire-state'
 
 let glowTex: THREE.Texture | null = null
 let sparkTex: THREE.Texture | null = null
@@ -30,6 +31,7 @@ export function glowPop(
       depthWrite: false,
     }),
   )
+  sprite.material.visible = !isWireframeOn() // ワイヤー確認中は発光を出さない
   sprite.position.copy(pos)
   sprite.scale.setScalar(scale * 0.3)
   sprite.renderOrder = 6

@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import gsap from 'gsap'
-import { FxManager, ParticleBurst, type Updatable } from '../particles'
+import { FxManager, ParticleBurst } from '../particles'
+import { MeshFx } from '../meshfx'
 import { glowPop } from '../impact'
 import { glowTexture, sparkTexture } from '../textures'
 
@@ -15,18 +16,11 @@ export interface LightningStrikeOptions {
  * 手続き生成の落雷。中点変位でジグザグ経路を作り、チューブ2重（白コア+色グロー）で描画。
  * 時間差で複数本走り、高周波の明滅を伴って消える。
  */
-export class LightningStrike implements Updatable {
-  private scene: THREE.Scene
-  private group = new THREE.Group()
-  private disposables: Array<THREE.BufferGeometry | THREE.Material> = []
-  private t = 0
-  private dead = false
-
+export class LightningStrike extends MeshFx {
   constructor(fx: FxManager, pos: THREE.Vector3, o: LightningStrikeOptions = {}) {
+    super(fx)
     const { color = 0x9fc8ff, strikes = 3, height = 8 } = o
-    this.scene = fx.scene
-    this.scene.add(this.group)
-    fx.add(this)
+    this.start()
 
     for (let s = 0; s < strikes; s++) {
       gsap.delayedCall(s * 0.13, () => {
@@ -34,14 +28,17 @@ export class LightningStrike implements Updatable {
         this.spawnBolt(fx, pos, height, color, s === strikes - 1)
       })
     }
-    gsap.delayedCall(strikes * 0.13 + 0.55, () => {
-      this.dead = true
-    })
+    gsap.delayedCall(strikes * 0.13 + 0.55, () => this.kill())
   }
 
   /** 加算合成チューブを稲妻経路に沿って張る。 */
-  private addTube(curve: THREE.CatmullRomCurve3, segs: number, radius: number, color: THREE.ColorRepresentation, opacity: number): THREE.MeshBasicMaterial {
-    const geo = new THREE.TubeGeometry(curve, segs, radius, 5)
+  private addTube(
+    curve: THREE.CatmullRomCurve3,
+    segs: number,
+    radius: number,
+    color: THREE.ColorRepresentation,
+    opacity: number,
+  ): THREE.Material {
     const mat = new THREE.MeshBasicMaterial({
       color,
       transparent: true,
@@ -49,10 +46,7 @@ export class LightningStrike implements Updatable {
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     })
-    const mesh = new THREE.Mesh(geo, mat)
-    mesh.renderOrder = 8
-    this.group.add(mesh)
-    this.disposables.push(geo, mat)
+    this.addPlainMesh(new THREE.TubeGeometry(curve, segs, radius, 5), mat, 8)
     return mat
   }
 
@@ -107,14 +101,14 @@ export class LightningStrike implements Updatable {
     }
 
     // 発光: 雲側 + 着弾点 + 上空の面フラッシュ
-    glowPop(this.scene, top, color, 2.5, 0.25)
-    glowPop(this.scene, pos.clone().setY(pos.y + 0.3), 0xffffff, last ? 4 : 2.5, 0.3)
-    glowPop(this.scene, top.clone().add(new THREE.Vector3(0, 1.5, 0)), 0x6f8fd8, 9, 0.3)
+    glowPop(fx.scene, top, color, 2.5, 0.25)
+    glowPop(fx.scene, pos.clone().setY(pos.y + 0.3), 0xffffff, last ? 4 : 2.5, 0.3)
+    glowPop(fx.scene, top.clone().add(new THREE.Vector3(0, 1.5, 0)), 0x6f8fd8, 9, 0.3)
 
     if (last) {
       // 着弾スパーク
       fx.add(
-        new ParticleBurst(this.scene, {
+        new ParticleBurst(fx.scene, {
           texture: sparkTexture(),
           position: pos.clone().add(new THREE.Vector3(0, 0.4, 0)),
           count: 34,
@@ -129,7 +123,7 @@ export class LightningStrike implements Updatable {
       )
       // 帯電の名残（ゆっくり立ちのぼるイオン粒子）
       fx.add(
-        new ParticleBurst(this.scene, {
+        new ParticleBurst(fx.scene, {
           texture: glowTexture(),
           position: pos.clone().add(new THREE.Vector3(0, 0.6, 0)),
           count: 14,
@@ -147,15 +141,8 @@ export class LightningStrike implements Updatable {
     }
   }
 
-  update(dt: number): boolean {
-    if (this.dead) {
-      this.scene.remove(this.group)
-      for (const d of this.disposables) d.dispose()
-      return false
-    }
-    this.t += dt
+  protected onUpdate(): void {
     // 高周波の明滅（数フレームごとに一瞬消える）
     this.group.visible = Math.sin(this.t * 70) > -0.85
-    return true
   }
 }

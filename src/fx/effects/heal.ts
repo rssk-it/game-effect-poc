@@ -120,6 +120,7 @@ export class HealBloom extends MeshFx {
         drift: 0.15 + Math.random() * 0.3,
       })
     }
+    this.refreshWireframe()
 
     // 4. 緑の光の粒
     new LightMotes(fx, pos, {

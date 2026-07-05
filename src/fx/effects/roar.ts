@@ -98,6 +98,7 @@ export class RoarWave extends MeshFx {
     )
 
     gsap.delayedCall(duration + 0.3, () => this.kill())
+    this.refreshWireframe() // group直下に手動追加したリングスプライトにも状態を反映
   }
 
   protected onUpdate(dt: number): void {

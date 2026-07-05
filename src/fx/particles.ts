@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { isWireframeOn } from './wire-state'
 
 /** update が false を返したら破棄される。 */
 export interface Updatable {
@@ -134,6 +135,8 @@ export class ParticleBurst implements Updatable {
       depthWrite: false,
       sizeAttenuation: true,
     })
+    // ワイヤーフレーム確認中はメッシュ構造だけを見せる
+    this.material.visible = !isWireframeOn()
 
     this.points = new THREE.Points(geo, this.material)
     this.points.renderOrder = 5

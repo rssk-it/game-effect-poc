@@ -122,6 +122,7 @@ export class FireVortex extends MeshFx {
           parent: this.group,
         }),
       )
+      this.refreshWireframe()
       for (let i = 0; i < this.swirl.count; i++) {
         this.swirlStates.push({
           ...this.rollSwirl(Math.random() * 1.2), // 発生を1.2秒ばらけさせる

@@ -23,6 +23,7 @@ import {
   LightningStrike,
   RoarWave,
   setFxWireframe,
+  getFxWireframe,
   hitSpark,
   glowPop,
   fireBeam,
@@ -76,6 +77,9 @@ function groundCircle(
   mesh.position.set(pos.x, 0.08, pos.z)
   mesh.scale.setScalar(scale * 0.2)
   mesh.renderOrder = 3
+  // ワイヤーフレーム確認中は発光オーバーレイを描かない
+  mesh.userData.fxOverlay = true
+  mat.visible = !getFxWireframe()
   fx.scene.add(mesh)
 
   const spin = { update: (dt: number) => ((mesh.rotation.z += dt * 1.1), mesh.parent !== null) }
@@ -465,7 +469,16 @@ async function boot(): Promise<void> {
     else if (current) loopCall = gsap.delayedCall(current.interval, () => current && play(current))
   })
   replayEl.addEventListener('click', () => current && play(current))
-  wireframeEl.addEventListener('change', () => setFxWireframe(wireframeEl.checked))
+  wireframeEl.addEventListener('change', () => {
+    setFxWireframe(wireframeEl.checked)
+    // トグル前から生存しているパーティクル/スプライト/発光オーバーレイにも即時反映する
+    scene.traverse((obj) => {
+      const o = obj as THREE.Points | THREE.Sprite
+      if ((o as THREE.Points).isPoints || (o as THREE.Sprite).isSprite || obj.userData.fxOverlay) {
+        ;(o.material as THREE.Material).visible = !wireframeEl.checked
+      }
+    })
+  })
 
   // ---- リサイズ & ループ ----
   const resize = () => {

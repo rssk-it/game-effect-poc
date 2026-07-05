@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { FxManager, type Updatable } from '../particles'
 import { ParticleField } from '../field'
 import { glowTexture } from '../textures'
+import { isWireframeOn } from '../wire-state'
 
 export interface LightMotesOptions {
   count?: number
@@ -55,6 +56,8 @@ export class LightMotes implements Updatable {
       renderOrder: 6,
       parent: fx.scene,
     })
+    // ワイヤーフレーム確認中はメッシュ構造だけを見せる
+    ;(this.field.points.material as THREE.Material).visible = !isWireframeOn()
 
     for (let i = 0; i < count; i++) {
       const ang = Math.random() * Math.PI * 2
