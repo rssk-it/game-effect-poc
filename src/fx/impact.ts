@@ -1,17 +1,15 @@
 import * as THREE from 'three'
 import gsap from 'gsap'
-import { glowTexture, sparkTexture, ringTexture } from './textures'
+import { glowTexture, sparkTexture } from './textures'
 import { FxManager, ParticleBurst } from './particles'
 
 let glowTex: THREE.Texture | null = null
 let sparkTex: THREE.Texture | null = null
-let ringTex: THREE.Texture | null = null
 
 function textures() {
   glowTex ??= glowTexture()
   sparkTex ??= sparkTexture()
-  ringTex ??= ringTexture()
-  return { glowTex, sparkTex, ringTex }
+  return { glowTex, sparkTex }
 }
 
 /** 一瞬膨らんで消える光球。 */
@@ -71,40 +69,6 @@ export function hitSpark(
       life: [0.18, 0.5],
     }),
   )
-}
-
-/** カメラに正対する衝撃波リング（咆哮など）。 */
-export function airShockwave(
-  scene: THREE.Scene,
-  pos: THREE.Vector3,
-  color: THREE.ColorRepresentation = 0xffffff,
-  maxScale = 9,
-  duration = 0.55,
-): void {
-  const { ringTex } = textures()
-  const sprite = new THREE.Sprite(
-    new THREE.SpriteMaterial({
-      map: ringTex,
-      color,
-      transparent: true,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-    }),
-  )
-  sprite.position.copy(pos)
-  sprite.scale.setScalar(0.5)
-  sprite.renderOrder = 6
-  scene.add(sprite)
-  gsap.to(sprite.scale, { x: maxScale, y: maxScale, duration, ease: 'power3.out' })
-  gsap.to(sprite.material, {
-    opacity: 0,
-    duration,
-    ease: 'power1.in',
-    onComplete: () => {
-      scene.remove(sprite)
-      sprite.material.dispose()
-    },
-  })
 }
 
 /** 走り込み・着地の砂煙。 */

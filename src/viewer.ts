@@ -21,6 +21,7 @@ import {
   RisingRings,
   FrostSpikes,
   LightningStrike,
+  RoarWave,
   setFxWireframe,
   hitSpark,
   glowPop,
@@ -273,6 +274,17 @@ const ENTRIES: FxEntry[] = [
       gsap.delayedCall(2.5, () => {
         new LightMotes(fx, ORIGIN, { count: 26, radius: 1.4, colorA: 0xfff7d9, colorB: 0xffc86a, stagger: 0.9 })
       })
+    },
+  },
+  {
+    name: '咆哮',
+    en: 'ROAR',
+    desc: 'カメラ正対の音波。放射ライン/炎リングのテクスチャリング3枚が時間差+逆回転で広がり、閃光・スパーク・突風の塵を重ねる。',
+    interval: 2.2,
+    trigger: (fx, assets) => {
+      new RoarWave(fx, assets, CHEST, { scale: 9 })
+      cameraShake(0.3, 0.6)
+      screenFlash(0.2, 0.2, '#ffd8c0')
     },
   },
   {

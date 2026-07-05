@@ -2,24 +2,32 @@ import * as THREE from 'three'
 import gsap from 'gsap'
 import { glowTexture } from './textures'
 import { FxManager, ParticleBurst, type Updatable } from './particles'
+import { FxMaterial } from './fxmaterial'
 import { glowPop } from './impact'
 
-/** 足元の魔法陣。appear → (回転し続ける) → dismiss。 */
+/**
+ * 足元の魔法陣。appear → (回転し続ける) → dismiss。
+ * color を指定するとテクスチャを輝度化してtintする（金の審判陣・緑の回復陣など）。
+ */
 export class MagicCircle implements Updatable {
   private mesh: THREE.Mesh
-  private material: THREE.MeshBasicMaterial
+  private material: FxMaterial
   private scene: THREE.Scene
   private dead = false
 
-  constructor(fx: FxManager, texture: THREE.Texture, pos: THREE.Vector3, private maxScale = 5) {
+  constructor(
+    fx: FxManager,
+    texture: THREE.Texture,
+    pos: THREE.Vector3,
+    private maxScale = 5,
+    color?: THREE.ColorRepresentation,
+  ) {
     this.scene = fx.scene
-    this.material = new THREE.MeshBasicMaterial({
+    this.material = new FxMaterial({
       map: texture,
-      transparent: true,
+      color: color ?? 0xffffff,
+      desaturate: color !== undefined ? 1 : 0,
       opacity: 0,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      side: THREE.DoubleSide,
     })
     this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), this.material)
     this.mesh.rotation.x = -Math.PI / 2
@@ -32,13 +40,13 @@ export class MagicCircle implements Updatable {
 
   appear(duration = 0.8): void {
     gsap.to(this.mesh.scale, { x: this.maxScale, y: this.maxScale, duration, ease: 'back.out(1.6)' })
-    gsap.to(this.material, { opacity: 1, duration: duration * 0.6, ease: 'power2.out' })
+    gsap.to(this.material, { opacity2: 1, duration: duration * 0.6, ease: 'power2.out' })
   }
 
   dismiss(duration = 0.5): void {
     gsap.to(this.mesh.scale, { x: this.maxScale * 1.5, y: this.maxScale * 1.5, duration, ease: 'power2.in' })
     gsap.to(this.material, {
-      opacity: 0,
+      opacity2: 0,
       duration,
       ease: 'power2.in',
       onComplete: () => {

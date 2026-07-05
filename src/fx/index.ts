@@ -27,6 +27,7 @@ export * from './effects/heal'
 export * from './effects/rising-rings'
 export * from './effects/frost-spikes'
 export * from './effects/lightning'
+export * from './effects/roar'
 
 export * from './impact'
 export * from './magic'
