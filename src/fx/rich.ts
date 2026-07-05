@@ -243,12 +243,20 @@ export interface FireVortexOptions {
   desaturate?: number
 }
 
-/** 二重の逆回転スパイラルメッシュによる火柱竜巻。 */
+/** 二重の逆回転スパイラルメッシュによる火柱竜巻。渦に沿って火の粉が巻き上がる。 */
 export class FireVortex extends MeshFx {
   private inner: THREE.Mesh
   private outer: THREE.Mesh
   private heatCore: THREE.Sprite
   private baseGlow: THREE.Sprite
+  private swirl: THREE.Points | null = null
+  private swirlTheta!: Float32Array
+  private swirlOmega!: Float32Array
+  private swirlRise!: Float32Array
+  private swirlBirth!: Float32Array
+  private swirlLife!: Float32Array
+  private swirlColor!: Float32Array
+  private duration: number
 
   constructor(fx: FxManager, assets: FxAssets, pos: THREE.Vector3, o: FireVortexOptions = {}) {
     super(fx)
@@ -261,6 +269,7 @@ export class FireVortex extends MeshFx {
       embers = true,
       desaturate = 0,
     } = o
+    this.duration = duration
 
     // 1. 外周の火流（energy-stream を第2レイヤに重ねて光の筋を流す + 熱歪み）
     const outerMat = new FxMaterial({
@@ -319,28 +328,55 @@ export class FireVortex extends MeshFx {
     tl.to([outerMat, innerMat], { dissolve: 1, duration: 0.7, ease: 'power2.in' }, duration - 0.7)
     tl.to([this.heatCore.material, this.baseGlow.material], { opacity: 0, duration: 0.6, ease: 'power2.in' }, duration - 0.6)
 
+    // 5. 渦に沿って巻き上がる火の粉（円錐面上を螺旋軌道で上昇し、燃え尽きたら再湧きする）
     if (embers) {
-      const emit = () =>
-        fx.add(
-          new ParticleBurst(fx.scene, {
-            texture: sparkTexture(),
-            position: pos.clone().add(new THREE.Vector3(0, 0.4, 0)),
-            count: 18,
-            colorA: 0xffd27a,
-            colorB: 0xff6a2a,
-            size: 0.22,
-            speed: [1.5, 4],
-            direction: new THREE.Vector3(0, 1, 0),
-            spread: 0.5,
-            gravity: -2.2,
-            drag: 0.8,
-            life: [0.5, 1.1],
-          }),
-        )
-      emit()
-      gsap.delayedCall(duration * 0.35, emit)
-      gsap.delayedCall(duration * 0.65, emit)
+      const count = 44
+      const ca = new THREE.Color(desaturate > 0 ? innerColor : 0xffd27a)
+      const cb = new THREE.Color(desaturate > 0 ? color : 0xff6a2a)
+      const positions = new Float32Array(count * 3)
+      const colors = new Float32Array(count * 3)
+      this.swirlTheta = new Float32Array(count)
+      this.swirlOmega = new Float32Array(count)
+      this.swirlRise = new Float32Array(count)
+      this.swirlBirth = new Float32Array(count)
+      this.swirlLife = new Float32Array(count)
+      this.swirlColor = new Float32Array(count * 3)
+      const tmp = new THREE.Color()
+      for (let i = 0; i < count; i++) {
+        this.resetSwirlParticle(i, Math.random() * 1.2) // 発生を1.2秒ばらけさせる
+        positions[i * 3 + 1] = -9999
+        tmp.lerpColors(ca, cb, Math.random())
+        this.swirlColor[i * 3 + 0] = tmp.r
+        this.swirlColor[i * 3 + 1] = tmp.g
+        this.swirlColor[i * 3 + 2] = tmp.b
+      }
+      const geo = this.ownGeometry(new THREE.BufferGeometry())
+      geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+      geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+      const mat = this.ownMaterial(
+        new THREE.PointsMaterial({
+          map: sparkTexture(),
+          size: 0.2,
+          vertexColors: true,
+          transparent: true,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+          sizeAttenuation: true,
+        }),
+      )
+      this.swirl = new THREE.Points(geo, mat)
+      this.swirl.renderOrder = 9
+      this.group.add(this.swirl)
     }
+  }
+
+  /** 火の粉1粒を根本付近に再配置する。 */
+  private resetSwirlParticle(i: number, delay: number): void {
+    this.swirlTheta[i] = Math.random() * Math.PI * 2
+    this.swirlOmega[i] = 3.5 + Math.random() * 3.5
+    this.swirlRise[i] = 0.9 + Math.random() * 0.9
+    this.swirlBirth[i] = this.t + delay
+    this.swirlLife[i] = 0.8 + Math.random() * 0.7
   }
 
   protected onUpdate(dt: number): void {
@@ -350,12 +386,70 @@ export class FireVortex extends MeshFx {
     const pulse = 1 + 0.14 * Math.sin(this.t * 11) + 0.06 * Math.sin(this.t * 27)
     this.heatCore.scale.set(1.6 * pulse, 2.4 * pulse, 1)
     this.baseGlow.scale.set(3.0 * (2 - pulse), 1.0, 1)
+
+    // 火の粉の螺旋軌道更新
+    if (this.swirl) {
+      const posAttr = this.swirl.geometry.getAttribute('position') as THREE.BufferAttribute
+      const colAttr = this.swirl.geometry.getAttribute('color') as THREE.BufferAttribute
+      const parr = posAttr.array as Float32Array
+      const carr = colAttr.array as Float32Array
+      const spawning = this.t < this.duration - 0.8
+      for (let i = 0; i < this.swirlLife.length; i++) {
+        const local = this.t - this.swirlBirth[i]
+        if (local < 0) continue
+        if (local >= this.swirlLife[i]) {
+          if (spawning) {
+            this.resetSwirlParticle(i, Math.random() * 0.25)
+          } else {
+            parr[i * 3 + 1] = -9999
+            carr[i * 3 + 0] = carr[i * 3 + 1] = carr[i * 3 + 2] = 0
+          }
+          continue
+        }
+        const p = local / this.swirlLife[i]
+        const y = 0.1 + this.swirlRise[i] * local
+        // 円錐面に沿う: メッシュの根本半径0.40 → 上端1.0 (高さ2.2)
+        const r = (0.42 + y * 0.28) * (1.04 + 0.08 * Math.sin(local * 9 + i))
+        const theta = this.swirlTheta[i] + this.swirlOmega[i] * local
+        parr[i * 3 + 0] = Math.cos(theta) * r
+        parr[i * 3 + 1] = y
+        parr[i * 3 + 2] = Math.sin(theta) * r
+        const env = Math.sin(Math.PI * Math.min(p * 1.5, 1)) * (0.75 + 0.25 * Math.sin(local * 22 + i * 2))
+        carr[i * 3 + 0] = this.swirlColor[i * 3 + 0] * env
+        carr[i * 3 + 1] = this.swirlColor[i * 3 + 1] * env
+        carr[i * 3 + 2] = this.swirlColor[i * 3 + 2] * env
+      }
+      posAttr.needsUpdate = true
+      colAttr.needsUpdate = true
+    }
   }
 }
 
 // ---------------------------------------------------------------- 3D衝撃波
 
+/** 衝撃波の属性。属性ごとに専用メッシュ+専用テクスチャ+専用地割れを使う。 */
+export type ShockElement = 'physical' | 'fire' | 'ice' | 'electric' | 'holy' | 'void'
+
+interface ShockElementDef {
+  geoKey: keyof FxAssets['geo']
+  texKey: keyof FxAssets['tex']
+  color: number
+  dustColor: number
+  crackKind: CrackKind
+}
+
+const SHOCK_ELEMENTS: Record<ShockElement, ShockElementDef> = {
+  physical: { geoKey: 'shockwave', texKey: 'shockwaveRing', color: 0xbfe4ff, dustColor: 0x556080, crackKind: 'stone' },
+  fire: { geoKey: 'flameRing', texKey: 'fireRing', color: 0xffb36a, dustColor: 0x8a3a10, crackKind: 'magma' },
+  ice: { geoKey: 'iceRing', texKey: 'frostBurst', color: 0xd8f0ff, dustColor: 0x4a7898, crackKind: 'ice' },
+  electric: { geoKey: 'sparkRing', texKey: 'electricRing', color: 0xcfe0ff, dustColor: 0x3a5288, crackKind: 'stone' },
+  holy: { geoKey: 'holyRing', texKey: 'holyRing', color: 0xffe2a0, dustColor: 0x907030, crackKind: 'stone' },
+  void: { geoKey: 'voidRing', texKey: 'voidRing', color: 0xc0a0ff, dustColor: 0x452878, crackKind: 'void' },
+}
+
 export interface ShockwaveOptions {
+  /** 属性（メッシュ・テクスチャ・地割れの種類が切り替わる）。省略時 physical */
+  element?: ShockElement
   maxScale?: number
   duration?: number
   color?: THREE.ColorRepresentation
@@ -364,35 +458,38 @@ export interface ShockwaveOptions {
   crack?: boolean
 }
 
-/** 外縁が盛り上がったリングメッシュが走る3D衝撃波。二段構成+フラッシュ+土煙。 */
+/** 属性別リングメッシュが走る3D衝撃波。二段構成+フラッシュ+土煙。 */
 export class Shockwave3D extends MeshFx {
   constructor(fx: FxManager, assets: FxAssets, pos: THREE.Vector3, o: ShockwaveOptions = {}) {
     super(fx)
-    const { maxScale = 7.5, duration = 0.7, color = 0xbfe4ff, edgeColor = 0xffffff, crack = false } = o
+    const def = SHOCK_ELEMENTS[o.element ?? 'physical']
+    const { maxScale = 7.5, duration = 0.7, color = def.color, edgeColor = 0xffffff, crack = false } = o
+    const ringGeo = assets.geo[def.geoKey]
+    const ringTex = assets.tex[def.texKey]
 
     this.group.position.set(pos.x, 0.05, pos.z)
     this.start()
 
-    // 1. 主リング
+    // 1. 主リング（属性専用メッシュ+テクスチャ）
     const mat = new FxMaterial({
-      map: assets.tex.shockwaveRing,
+      map: ringTex,
       color,
       edgeColor,
       dissolveSoft: 0.22,
       radialFade: 0.72,
     })
-    const ring = this.addMesh(assets.geo.shockwave, mat, 6)
+    const ring = this.addMesh(ringGeo, mat, 6)
     ring.scale.setScalar(0.4)
 
     // 2. 追い波（白く薄いリングが少し遅れて速く走る）
     const chaserMat = new FxMaterial({
-      map: assets.tex.shockwaveRing,
+      map: ringTex,
       color: 0xffffff,
       dissolveSoft: 0.3,
       radialFade: 0.72,
       opacity: 0.8,
     })
-    const chaser = this.addMesh(assets.geo.shockwave, chaserMat, 6)
+    const chaser = this.addMesh(ringGeo, chaserMat, 6)
     chaser.scale.set(0.2, 0.1, 0.2)
 
     // 3. 中心の炸裂フラッシュ
@@ -407,14 +504,14 @@ export class Shockwave3D extends MeshFx {
     tl.to(flash.scale, { x: maxScale * 0.55, y: maxScale * 0.4, duration: duration * 0.35, ease: 'power3.out' }, 0)
     tl.to(flash.material, { opacity: 0, duration: duration * 0.35, ease: 'power2.in' }, duration * 0.12)
 
-    // 4. 外周へ弾ける土煙
+    // 4. 外周へ弾ける土煙（属性色）
     fx.add(
       new ParticleBurst(fx.scene, {
         texture: glowTexture(),
         position: pos.clone().add(new THREE.Vector3(0, 0.25, 0)),
         count: 20,
         colorA: color,
-        colorB: 0x556080,
+        colorB: def.dustColor,
         size: 0.55,
         speed: [maxScale * 0.9, maxScale * 1.6],
         direction: new THREE.Vector3(0, 0.12, 0),
@@ -425,7 +522,7 @@ export class Shockwave3D extends MeshFx {
       }),
     )
 
-    if (crack) new GroundCrack(fx, assets, pos, { scale: maxScale * 0.75 })
+    if (crack) new GroundCrack(fx, assets, pos, { scale: maxScale * 0.75, kind: def.crackKind })
   }
 
   protected onUpdate(): void {}
@@ -433,28 +530,48 @@ export class Shockwave3D extends MeshFx {
 
 // ---------------------------------------------------------------- 地割れデカール
 
+/** 地割れの種類。それぞれ専用の image-gen テクスチャを使う（tint流用はしない）。 */
+export type CrackKind = 'magma' | 'ice' | 'void' | 'stone'
+
+interface CrackDef {
+  texKey: keyof FxAssets['tex']
+  color: number
+  edgeColor: number
+  /** 脈動の強さ（マグマは強く、氷はほぼ無し） */
+  pulse: number
+}
+
+const CRACK_KINDS: Record<CrackKind, CrackDef> = {
+  magma: { texKey: 'groundCrack', color: 0xffb45e, edgeColor: 0xff5a1a, pulse: 0.12 },
+  ice: { texKey: 'iceCrack', color: 0xe8f6ff, edgeColor: 0x8fd4ff, pulse: 0.04 },
+  void: { texKey: 'voidCrack', color: 0xe6d4ff, edgeColor: 0x8a3cff, pulse: 0.1 },
+  stone: { texKey: 'stoneCrack', color: 0xdfe8ff, edgeColor: 0x9fb8e8, pulse: 0.06 },
+}
+
 export interface GroundCrackOptions {
+  /** 地割れの種類（専用テクスチャに切替）。省略時 magma */
+  kind?: CrackKind
   scale?: number
   duration?: number
   color?: THREE.ColorRepresentation
-  /** 1でテクスチャ輝度×tint（色替えバリアント用） */
-  desaturate?: number
 }
 
-/** マグマ地割れの発光デカール。出現 → 脈動 → ディゾルブ。 */
+/** 地割れ・地面デカール。出現 → 脈動 → ディゾルブ。種類ごとに専用テクスチャ。 */
 export class GroundCrack extends MeshFx {
   private mat: FxMaterial
   private env = { v: 0 }
+  private pulse: number
 
   constructor(fx: FxManager, assets: FxAssets, pos: THREE.Vector3, o: GroundCrackOptions = {}) {
     super(fx)
-    const { scale = 5, duration = 1.6, color = 0xffb45e, desaturate = 0 } = o
+    const def = CRACK_KINDS[o.kind ?? 'magma']
+    const { scale = 5, duration = 1.6, color = def.color } = o
+    this.pulse = def.pulse
 
     this.mat = new FxMaterial({
-      map: assets.tex.groundCrack,
+      map: assets.tex[def.texKey],
       color,
-      desaturate,
-      edgeColor: desaturate > 0 ? color : 0xff5a1a,
+      edgeColor: def.edgeColor,
       opacity: 0,
       dissolveSoft: 0.16,
       radialFade: 0.55,
@@ -473,8 +590,8 @@ export class GroundCrack extends MeshFx {
   }
 
   protected onUpdate(): void {
-    // マグマの脈動（エンベロープ × 揺らぎ）
-    this.mat.opacity2 = this.env.v * (0.88 + 0.12 * Math.sin(this.t * 14))
+    // 発光の脈動（エンベロープ × 種類ごとの揺らぎ量）
+    this.mat.opacity2 = this.env.v * (1 - this.pulse + this.pulse * Math.sin(this.t * 14))
   }
 }
 
@@ -741,7 +858,7 @@ export interface RisingRingsOptions {
   height?: number
 }
 
-/** 衝撃波リングメッシュが体に沿って昇っていくバフ・オーラ演出。 */
+/** ルーン刻印の帯メッシュが体に沿って昇っていくバフ・オーラ演出。 */
 export class RisingRings extends MeshFx {
   constructor(fx: FxManager, assets: FxAssets, pos: THREE.Vector3, o: RisingRingsOptions = {}) {
     super(fx)
@@ -752,14 +869,16 @@ export class RisingRings extends MeshFx {
 
     for (let i = 0; i < count; i++) {
       const mat = new FxMaterial({
-        map: assets.tex.shockwaveRing,
+        map: assets.tex.runeBand,
         color,
         edgeColor: 0xffffff,
+        scroll: [0.25 * (i % 2 === 0 ? 1 : -1), 0],
         dissolveSoft: 0.3,
-        radialFade: 0.75,
+        fadeTop: 0.3,
+        fadeBottom: 0.3,
         opacity: 0,
       })
-      const mesh = this.addMesh(assets.geo.shockwave, mat, 7)
+      const mesh = this.addMesh(assets.geo.auraBand, mat, 7)
       mesh.position.y = 0.1
       mesh.scale.setScalar(scale * 1.25)
 
@@ -858,8 +977,8 @@ export class FrostSpikes extends MeshFx {
         life: [0.8, 1.5],
       }),
     )
-    // 凍った地面（マグマ地割れテクスチャの輝度化・氷色転用）
-    new GroundCrack(fx, assets, pos, { scale: radius * 3.6, duration: duration + 0.3, color: 0x8fd4ff, desaturate: 1 })
+    // 凍った地面（専用の氷裂テクスチャ）
+    new GroundCrack(fx, assets, pos, { scale: radius * 3.6, duration: duration + 0.3, kind: 'ice' })
     // 結晶表面のきらめき（ランダムな時間差で小さな光が瞬く）
     for (let i = 0; i < 4; i++) {
       gsap.delayedCall(0.35 + Math.random() * (duration - 0.9), () => {

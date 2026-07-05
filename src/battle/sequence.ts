@@ -340,8 +340,8 @@ async function mageUltimate(world: World): Promise<void> {
   // フィニッシュの一撃
   hud.flash(1, 0.7)
   glowPop(scene, boss.chest(0.5), 0xffffff, 8, 0.7)
-  new Shockwave3D(fx, world.fxAssets, boss.position, { maxScale: 13, color: 0xc27bff, crack: true, duration: 0.9 })
-  new GroundCrack(fx, world.fxAssets, boss.position, { scale: 9, duration: 2.4, color: 0xb886ff, desaturate: 1 })
+  new Shockwave3D(fx, world.fxAssets, boss.position, { element: 'void', maxScale: 13, crack: true, duration: 0.9 })
+  new GroundCrack(fx, world.fxAssets, boss.position, { scale: 9, duration: 2.4, kind: 'void' })
   hud.damageBoss(1)
   hud.spawnDamage(boss.chest(0.9), 32768, 'ultimate')
   rig.fovPunch(10, 0.6)

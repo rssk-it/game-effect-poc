@@ -114,7 +114,7 @@ const ENTRIES: FxEntry[] = [
     trigger: (fx, assets) => {
       new FireVortex(fx, assets, ORIGIN, { scale: 1.7 })
       new GroundCrack(fx, assets, ORIGIN, { scale: 6, duration: 2.6 })
-      new Shockwave3D(fx, assets, ORIGIN, { maxScale: 5, color: 0xffa04d, duration: 0.55 })
+      new Shockwave3D(fx, assets, ORIGIN, { element: 'fire', maxScale: 5, duration: 0.55 })
       cameraShake(0.16, 0.5)
     },
   },
@@ -154,7 +154,7 @@ const ENTRIES: FxEntry[] = [
         embers: false,
         desaturate: 1,
       })
-      new Shockwave3D(fx, assets, ORIGIN, { maxScale: 6, color: 0x9a6cff, duration: 0.6 })
+      new Shockwave3D(fx, assets, ORIGIN, { element: 'void', maxScale: 6, duration: 0.6 })
     },
   },
   {
@@ -221,7 +221,7 @@ const ENTRIES: FxEntry[] = [
       screenFlash(0.3, 0.15, '#cfe0ff')
       gsap.delayedCall(0.13, () => screenFlash(0.2, 0.12, '#cfe0ff'))
       gsap.delayedCall(0.26, () => {
-        new Shockwave3D(fx, assets, ORIGIN, { maxScale: 5, color: 0x3f5e9e, duration: 0.45 })
+        new Shockwave3D(fx, assets, ORIGIN, { element: 'electric', maxScale: 5, duration: 0.45 })
         screenFlash(0.4, 0.25, '#e8f0ff')
         cameraShake(0.2, 0.35)
       })
@@ -234,7 +234,7 @@ const ENTRIES: FxEntry[] = [
     interval: 3.0,
     trigger: (fx, assets) => {
       new FrostSpikes(fx, assets, ORIGIN, { count: 8 })
-      new Shockwave3D(fx, assets, ORIGIN, { maxScale: 5, color: 0x9fdcff, duration: 0.6 })
+      new Shockwave3D(fx, assets, ORIGIN, { element: 'ice', maxScale: 5, duration: 0.6 })
       cameraShake(0.12, 0.3)
     },
   },
@@ -269,7 +269,7 @@ const ENTRIES: FxEntry[] = [
           duration: 1.5,
         })
         new HolyPillar(fx, assets, ORIGIN, { scale: 1.35, duration: 2.0, gather: false })
-        new Shockwave3D(fx, assets, ORIGIN, { maxScale: 9.5, color: 0xffd27a, crack: true })
+        new Shockwave3D(fx, assets, ORIGIN, { element: 'holy', maxScale: 9.5, crack: true })
         hitSpark(fx, new THREE.Vector3(0, 1, 0), 0xffe9b0, 1.4)
         screenFlash(0.65, 0.5, '#fff3d8')
         cameraShake(0.3, 0.9)
@@ -345,7 +345,7 @@ const ENTRIES: FxEntry[] = [
           core.material.dispose()
           glowPop(fx.scene, new THREE.Vector3(0, 0.8, 0), 0xffffff, 6, 0.45)
           new FireVortex(fx, assets, ORIGIN, { scale: 1.5, duration: 1.8 })
-          new Shockwave3D(fx, assets, ORIGIN, { maxScale: 10, color: 0xffa04d, duration: 0.8, crack: true })
+          new Shockwave3D(fx, assets, ORIGIN, { element: 'fire', maxScale: 10, duration: 0.8, crack: true })
           new GroundCrack(fx, assets, ORIGIN, { scale: 8, duration: 2.4 })
           hitSpark(fx, new THREE.Vector3(0, 0.8, 0), 0xffb45e, 2)
           screenFlash(0.55, 0.45, '#ffe8c8')
