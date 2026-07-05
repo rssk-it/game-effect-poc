@@ -7,9 +7,10 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
 import gsap from 'gsap'
 import { getTimeScale, setTimeScale } from './core/time'
-import { FxManager } from './fx/particles'
-import { loadFxAssets, type FxAssets } from './fx/assets'
 import {
+  FxManager,
+  loadFxAssets,
+  type FxAssets,
   SlashTrail,
   FireVortex,
   Shockwave3D,
@@ -20,11 +21,12 @@ import {
   FrostSpikes,
   LightningStrike,
   setFxWireframe,
-} from './fx/rich'
-import { hitSpark, glowPop } from './fx/impact'
-import { fireBeam } from './fx/magic'
-import { ParticleBurst } from './fx/particles'
-import { glowTexture } from './fx/textures'
+  hitSpark,
+  glowPop,
+  fireBeam,
+  ParticleBurst,
+  glowTexture,
+} from './fx'
 
 /** エフェクト単体確認用ビューア。ボタンで再生し、OrbitControls で全方位から確認する。 */
 

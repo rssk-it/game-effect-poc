@@ -73,43 +73,6 @@ export function hitSpark(
   )
 }
 
-/** 地面を走る衝撃波リング。 */
-export function groundShockwave(
-  scene: THREE.Scene,
-  pos: THREE.Vector3,
-  color: THREE.ColorRepresentation = 0xffffff,
-  maxScale = 10,
-  duration = 0.7,
-): void {
-  const { ringTex } = textures()
-  const mesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(1, 1),
-    new THREE.MeshBasicMaterial({
-      map: ringTex,
-      color,
-      transparent: true,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-    }),
-  )
-  mesh.rotation.x = -Math.PI / 2
-  mesh.position.set(pos.x, 0.06, pos.z)
-  mesh.renderOrder = 4
-  scene.add(mesh)
-  gsap.to(mesh.scale, { x: maxScale, y: maxScale, duration, ease: 'power2.out' })
-  gsap.to(mesh.material, {
-    opacity: 0,
-    duration,
-    ease: 'power1.in',
-    onComplete: () => {
-      scene.remove(mesh)
-      mesh.geometry.dispose()
-      mesh.material.dispose()
-    },
-  })
-}
-
 /** カメラに正対する衝撃波リング（咆哮など）。 */
 export function airShockwave(
   scene: THREE.Scene,

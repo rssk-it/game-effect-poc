@@ -2,11 +2,24 @@ import * as THREE from 'three'
 import gsap from 'gsap'
 import type { World } from '../world'
 import { sleep, hitStop, setTimeScale } from '../core/time'
-import { hitSpark, glowPop, airShockwave, dustPuff } from '../fx/impact'
-import { MagicCircle, chargeParticles, fireBeam } from '../fx/magic'
-import { SlashTrail, FireVortex, Shockwave3D, GroundCrack, HolyPillar, LightMotes } from '../fx/rich'
-import { ParticleBurst } from '../fx/particles'
-import { glowTexture, sparkTexture } from '../fx/textures'
+import {
+  hitSpark,
+  glowPop,
+  airShockwave,
+  dustPuff,
+  MagicCircle,
+  chargeParticles,
+  fireBeam,
+  SlashTrail,
+  FireVortex,
+  Shockwave3D,
+  GroundCrack,
+  HolyPillar,
+  LightMotes,
+  ParticleBurst,
+  glowTexture,
+  sparkTexture,
+} from '../fx'
 
 /** 立ち位置（リプレイ時にここへ戻す） */
 const HOME = {
