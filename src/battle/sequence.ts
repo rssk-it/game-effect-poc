@@ -12,6 +12,7 @@ import {
   fireBeam,
   SlashTrail,
   FireVortex,
+  FrostSpikes,
   Shockwave3D,
   GroundCrack,
   HolyPillar,
@@ -88,10 +89,12 @@ async function intro(world: World): Promise<void> {
   rig.target.set(HOME.boss.x, 3.4, HOME.boss.z)
   await sleep(0.6)
 
-  // ボスが吠える
+  // ボスが吠える: 集中線 + 激しいシェイク + FOVパンチ
   chars.boss.flashWhite(0.5, 0.6)
   airShockwave(world.scene, chars.boss.chest(0.6), 0xff5f4a, 8, 0.7)
-  rig.doShake(0.18, 0.6)
+  hud.focusLines(1.0)
+  rig.doShake(0.5, 0.9)
+  rig.fovPunch(8, 0.55)
   await sleep(0.9)
 
   // パーティ全景へスイープ
@@ -185,8 +188,8 @@ async function bossTurn(world: World): Promise<void> {
   boss.flashWhite(0.6, 0.5)
   airShockwave(scene, boss.chest(0.6), 0xff5f4a, 10, 0.7)
   hud.showSkillBanner('滅殺の爪牙', { sub: 'SAVAGE CLEAVE' })
-  rig.fovPunch(9, 0.5)
-  rig.doShake(0.28, 0.65)
+  rig.fovPunch(12, 0.55)
+  rig.doShake(0.55, 1.0)
   const pulse = gsap.timeline()
   pulse.to(boss.mesh.scale, { x: boss.mesh.scale.x * 1.06, y: 1.06, duration: 0.18, ease: 'power2.out', yoyo: true, repeat: 1 })
   await sleep(1.0)
@@ -198,8 +201,8 @@ async function bossTurn(world: World): Promise<void> {
   await sleep(0.48)
   dustPuff(fx, boss.position, -1, 1.6)
 
-  // なぎ払い: 巨大な赤い斬撃が味方全員を打つ
-  new SlashTrail(fx, world.fxAssets, new THREE.Vector3(-6.5, 2.4, 0.5), {
+  // なぎ払い: 巨大な赤い斬撃が味方全員を打つ（味方の胸の高さに合わせて低めに配置）
+  new SlashTrail(fx, world.fxAssets, new THREE.Vector3(-6.5, 0.9, 0.5), {
     roll: 0.3,
     mirror: true,
     scale: 8.5,
@@ -240,8 +243,8 @@ async function tankTurn(world: World): Promise<void> {
   rig.focusOn(tank.position, { distance: 6, azimuth: 22, height: 2.2, lookHeight: 1.7, duration: 0.7 })
   await sleep(0.75)
   tank.flashWhite(0.5, 0.4)
-  glowPop(scene, tank.chest(), 0xffd27a, 2.2, 0.45)
-  hud.showSkillBanner('剛盾破砕撃', { sub: 'SHIELD BREAKER' })
+  glowPop(scene, tank.chest(), 0x9fdcff, 2.2, 0.45)
+  hud.showSkillBanner('氷牙氷結', { sub: 'FROST FANG' })
   await sleep(0.5)
 
   // シールドチャージ: 地を這う突進
@@ -252,11 +255,12 @@ async function tankTurn(world: World): Promise<void> {
   rig.moveTo(new THREE.Vector3(1.5, 2, 12), new THREE.Vector3(2.5, 2.4, 0), 0.45, 'power2.inOut')
   await sleep(0.44)
 
-  // 盾バッシュ
+  // 氷牙氷結: ボスの足元から氷晶がせり上がり、氷の衝撃波が走る
   const target = boss.chest(0.4)
-  glowPop(scene, target, 0xffd27a, 3.4, 0.3)
-  hitSpark(fx, target, 0xffcf7a, 1.7)
-  new Shockwave3D(fx, world.fxAssets, boss.position, { maxScale: 10, color: 0xffb54d, crack: true, duration: 0.75 })
+  glowPop(scene, target, 0xd8f0ff, 3.4, 0.3)
+  hitSpark(fx, target, 0x9fdcff, 1.7)
+  new FrostSpikes(fx, world.fxAssets, boss.position, { count: 9, radius: 1.4, maxHeight: 2.6 })
+  new Shockwave3D(fx, world.fxAssets, boss.position, { element: 'ice', maxScale: 9, crack: true, duration: 0.75 })
   boss.tintRed(0.35)
   boss.knockback(1, 1.1, 0.6)
   hud.damageBoss(0.12)
@@ -341,6 +345,9 @@ async function mageUltimate(world: World): Promise<void> {
   })
   rig.doShake(0.34, 1.6)
   boss.tintRed(1.4)
+
+  // 発射を見せたらカメラをボスへパンし、連続ヒット〜撃破を正面で見せる
+  rig.focusOn(boss.position, { distance: 9.5, azimuth: -20, height: 2.8, lookHeight: 2.8, duration: 1.0 })
 
   // ビーム着弾の連続ヒット
   for (let i = 0; i < 4; i++) {

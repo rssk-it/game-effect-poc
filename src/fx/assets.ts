@@ -15,6 +15,7 @@ export interface FxAssets {
     voidRing: THREE.BufferGeometry
     sparkRing: THREE.BufferGeometry
     auraBand: THREE.BufferGeometry
+    healCrown: THREE.BufferGeometry
   }
   tex: {
     fireNoise: THREE.Texture
@@ -72,6 +73,7 @@ export async function loadFxAssets(): Promise<FxAssets> {
     ['voidRing', 'void-ring.glb'],
     ['sparkRing', 'spark-ring.glb'],
     ['auraBand', 'aura-band.glb'],
+    ['healCrown', 'heal-crown.glb'],
   ]
   const texDefs: Array<[keyof FxAssets['tex'], string, boolean]> = [
     ['fireNoise', 'fire-noise.png', true],

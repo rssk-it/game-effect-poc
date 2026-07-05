@@ -187,6 +187,55 @@ export class Hud {
     gsap.to(this.letterboxBottom, { y: show ? '0%' : '101%', duration, ease: 'power3.out' })
   }
 
+  /**
+   * 漫画的な集中線オーバーレイ。画面端から中心へ向かう三角ウェッジ群を
+   * 一定間隔で引き直してフリッカーさせ、duration 秒でフェードアウトする。
+   */
+  focusLines(duration = 0.9): void {
+    const frame = document.getElementById('frame')!
+    const canvas = document.createElement('canvas')
+    canvas.className = 'focus-lines'
+    frame.appendChild(canvas)
+    const ctx = canvas.getContext('2d')!
+
+    const draw = () => {
+      const w = (canvas.width = frame.clientWidth)
+      const h = (canvas.height = frame.clientHeight)
+      ctx.clearRect(0, 0, w, h)
+      const cx = w / 2
+      const cy = h / 2
+      const maxR = Math.hypot(cx, cy) * 1.05
+      const inner = Math.min(w, h) * 0.24
+      ctx.fillStyle = 'rgba(255,255,255,0.9)'
+      for (let i = 0; i < 70; i++) {
+        const ang = Math.random() * Math.PI * 2
+        const halfW = 0.004 + Math.random() * 0.011 // 角度半幅（先端ほど細い楔）
+        const rIn = inner * (0.85 + Math.random() * 0.55)
+        ctx.beginPath()
+        ctx.moveTo(cx + Math.cos(ang - halfW) * maxR, cy + Math.sin(ang - halfW) * maxR)
+        ctx.lineTo(cx + Math.cos(ang) * rIn, cy + Math.sin(ang) * rIn)
+        ctx.lineTo(cx + Math.cos(ang + halfW) * maxR, cy + Math.sin(ang + halfW) * maxR)
+        ctx.closePath()
+        ctx.fill()
+      }
+    }
+    draw()
+    const flicker = window.setInterval(draw, 90)
+    gsap.fromTo(
+      canvas,
+      { opacity: 0.85 },
+      {
+        opacity: 0,
+        duration,
+        ease: 'power2.in',
+        onComplete: () => {
+          window.clearInterval(flicker)
+          canvas.remove()
+        },
+      },
+    )
+  }
+
   /** 必殺技カットイン。帯が開き、絵が横切る。 */
   playCutin(): Promise<void> {
     const band = this.cutinEl.querySelector('.cutin-band') as HTMLElement

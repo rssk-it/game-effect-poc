@@ -62,6 +62,36 @@ export function blobShadowTexture(size = 128): THREE.CanvasTexture {
   })
 }
 
+/** 4方向に光条が伸びるスター（✨）。回復・きらめき用。 */
+export function starTexture(size = 128): THREE.CanvasTexture {
+  return makeTexture(size, (ctx, s) => {
+    // 中心のコア
+    const core = ctx.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s * 0.16)
+    core.addColorStop(0, 'rgba(255,255,255,1)')
+    core.addColorStop(1, 'rgba(255,255,255,0)')
+    ctx.fillStyle = core
+    ctx.fillRect(0, 0, s, s)
+    // 縦横の細い光条
+    ctx.save()
+    ctx.translate(s / 2, s / 2)
+    for (const rot of [0, Math.PI / 2]) {
+      ctx.save()
+      ctx.rotate(rot)
+      ctx.scale(1, 0.1)
+      const ray = ctx.createRadialGradient(0, 0, 0, 0, 0, s / 2)
+      ray.addColorStop(0, 'rgba(255,255,255,0.95)')
+      ray.addColorStop(0.6, 'rgba(255,255,255,0.35)')
+      ray.addColorStop(1, 'rgba(255,255,255,0)')
+      ctx.fillStyle = ray
+      ctx.beginPath()
+      ctx.arc(0, 0, s / 2, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.restore()
+    }
+    ctx.restore()
+  })
+}
+
 /** 地面の霧・砂煙用のソフトな塊。 */
 export function smokeTexture(size = 128): THREE.CanvasTexture {
   return makeTexture(size, (ctx, s) => {

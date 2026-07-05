@@ -16,6 +16,7 @@ import {
   Shockwave3D,
   GroundCrack,
   HolyPillar,
+  HealBloom,
   LightMotes,
   RisingRings,
   FrostSpikes,
@@ -26,6 +27,7 @@ import {
   fireBeam,
   ParticleBurst,
   glowTexture,
+  FxMaterial,
 } from './fx'
 
 /** エフェクト単体確認用ビューア。ボタンで再生し、OrbitControls で全方位から確認する。 */
@@ -52,21 +54,21 @@ let magicCircleTex!: THREE.Texture
 let screenFlash: (intensity?: number, duration?: number, color?: string) => void = () => {}
 let cameraShake: (strength?: number, duration?: number) => void = () => {}
 
-/** 色tint可能な足元の魔法陣。回転しながら出現し、時間経過で拡散消滅する。 */
+/**
+ * 色tint可能な足元の魔法陣。回転しながら出現し、時間経過で拡散消滅する。
+ * テクスチャを輝度化してtintするので、紫の元絵でも金・緑などエフェクトの色に馴染む。
+ */
 function groundCircle(
   fx: FxManager,
   pos: THREE.Vector3,
   o: { color?: THREE.ColorRepresentation; scale?: number; duration?: number } = {},
 ): void {
   const { color = 0xffffff, scale = 4, duration = 2.4 } = o
-  const mat = new THREE.MeshBasicMaterial({
+  const mat = new FxMaterial({
     map: magicCircleTex,
     color,
-    transparent: true,
+    desaturate: 1,
     opacity: 0,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-    side: THREE.DoubleSide,
   })
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat)
   mesh.rotation.x = -Math.PI / 2
@@ -86,9 +88,9 @@ function groundCircle(
     },
   })
   tl.to(mesh.scale, { x: scale, y: scale, z: scale, duration: 0.55, ease: 'back.out(1.5)' }, 0)
-  tl.to(mat, { opacity: 1, duration: 0.35, ease: 'power2.out' }, 0)
+  tl.to(mat, { opacity2: 1, duration: 0.35, ease: 'power2.out' }, 0)
   tl.to(mesh.scale, { x: scale * 1.4, y: scale * 1.4, z: scale * 1.4, duration: 0.5, ease: 'power2.in' }, duration - 0.5)
-  tl.to(mat, { opacity: 0, duration: 0.5, ease: 'power2.in' }, duration - 0.5)
+  tl.to(mat, { opacity2: 0, duration: 0.5, ease: 'power2.in' }, duration - 0.5)
 }
 
 const ENTRIES: FxEntry[] = [
@@ -180,19 +182,10 @@ const ENTRIES: FxEntry[] = [
   {
     name: '回復',
     en: 'HEAL',
-    desc: '緑にtintした魔法陣 + 光の粒 + 胸元の柔らかいグロー。攻撃系と対照的な「包む」構成のサポート演出。',
+    desc: '王冠状メッシュが地面からせり上がって開き、縦の光線が体の周りを走り、✨のきらめきと緑の光の粒が包む4層構成。',
     interval: 3.2,
-    trigger: (fx) => {
-      groundCircle(fx, ORIGIN, { color: 0xb8ffd4, scale: 3.8, duration: 2.4 })
-      new LightMotes(fx, ORIGIN, {
-        count: 34,
-        radius: 1.0,
-        colorA: 0xeafff0,
-        colorB: 0x7dffb0,
-        stagger: 1.2,
-        riseSpeed: [0.5, 0.95],
-      })
-      gsap.delayedCall(0.5, () => glowPop(fx.scene, CHEST, 0x9dffc0, 2.4, 0.6))
+    trigger: (fx, assets) => {
+      new HealBloom(fx, assets, ORIGIN)
     },
   },
   {
