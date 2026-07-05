@@ -41,6 +41,7 @@ function resetBattle(world: World): void {
   placeCharacters(world)
   hud.resetHp()
   hud.setActing(null)
+  hud.hidePlates()
   rig.position.copy(DEFAULT_CAM_POS)
   rig.target.copy(DEFAULT_CAM_LOOK)
   setTimeScale(1)
@@ -83,7 +84,9 @@ async function intro(world: World): Promise<void> {
   // パーティ全景へスイープ
   rig.moveTo(DEFAULT_CAM_POS, DEFAULT_CAM_LOOK, 2.2, 'power2.inOut')
   await sleep(1.4)
+  // 黒帯が完全に消えてからタイトル・HUDを出す
   hud.letterbox(false)
+  await sleep(0.55)
   await hud.showCenterTitle('BATTLE START', false, 0.9)
   hud.showPlates()
   await sleep(0.3)
@@ -262,6 +265,7 @@ async function mageUltimate(world: World): Promise<void> {
   // 寄り + レターボックスで「来るぞ」感
   rig.focusOn(mage.position, { distance: 5.5, azimuth: 24, height: 2.2, lookHeight: 1.8, duration: 0.8 })
   hud.letterbox(true, 0.6)
+  hud.hidePlates(0.4)
   await sleep(0.9)
 
   // カットイン
@@ -354,6 +358,7 @@ async function mageUltimate(world: World): Promise<void> {
   await sleep(0.8)
   setTimeScale(1)
   hud.letterbox(false)
+  hud.showPlates()
   hud.setActing(null)
   await sleep(0.6)
 }

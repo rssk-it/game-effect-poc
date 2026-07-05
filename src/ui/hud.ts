@@ -119,6 +119,16 @@ export class Hud {
     gsap.to(this.partyPlates, { opacity: 1, duration: 0.6 })
   }
 
+  /** シネマティック（黒帯）中はプレートを隠す。duration 0 で即時。 */
+  hidePlates(duration = 0): void {
+    gsap.killTweensOf([this.bossPlate, this.partyPlates])
+    if (duration > 0) {
+      gsap.to([this.bossPlate, this.partyPlates], { opacity: 0, duration })
+    } else {
+      gsap.set([this.bossPlate, this.partyPlates], { opacity: 0 })
+    }
+  }
+
   setActing(index: number | null): void {
     this.allyEls.forEach((el, i) => el.plate.classList.toggle('acting', i === index))
   }
