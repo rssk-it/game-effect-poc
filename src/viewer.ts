@@ -7,6 +7,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
 import gsap from 'gsap'
 import { getTimeScale, setTimeScale } from './core/time'
+import { assetUrl } from './core/assetPath'
 import {
   FxManager,
   loadFxAssets,
@@ -425,7 +426,7 @@ async function boot(): Promise<void> {
   const fx = new FxManager(scene)
   const [assets, circleTex] = await Promise.all([
     loadFxAssets(),
-    new THREE.TextureLoader().loadAsync('/assets/magic-circle.png'),
+    new THREE.TextureLoader().loadAsync(assetUrl('/assets/magic-circle.png')),
   ])
   circleTex.colorSpace = THREE.SRGBColorSpace
   magicCircleTex = circleTex

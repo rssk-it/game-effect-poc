@@ -11,6 +11,7 @@ import { FxManager } from './fx/particles'
 import { loadFxAssets } from './fx/assets'
 import { Hud } from './ui/hud'
 import { getTimeScale } from './core/time'
+import { assetUrl } from './core/assetPath'
 import { placeCharacters, runBattleLoop } from './battle/sequence'
 import type { World } from './world'
 
@@ -36,14 +37,14 @@ async function boot(): Promise<void> {
   const [[knightTex, mageTex, tankTex, bossTex, groundTex, backdropTex, magicCircleTex, slashTex], fxAssets] =
     await Promise.all([
       Promise.all([
-        loadTexture(loader, '/assets/knight.png'),
-        loadTexture(loader, '/assets/mage.png'),
-        loadTexture(loader, '/assets/tank.png'),
-        loadTexture(loader, '/assets/boss-enemy.png'),
-        loadTexture(loader, '/assets/ground-tile.png'),
-        loadTexture(loader, '/assets/bg-panorama.png'),
-        loadTexture(loader, '/assets/magic-circle.png'),
-        loadTexture(loader, '/assets/slash-arc.png'),
+        loadTexture(loader, assetUrl('/assets/knight.png')),
+        loadTexture(loader, assetUrl('/assets/mage.png')),
+        loadTexture(loader, assetUrl('/assets/tank.png')),
+        loadTexture(loader, assetUrl('/assets/boss-enemy.png')),
+        loadTexture(loader, assetUrl('/assets/ground-tile.png')),
+        loadTexture(loader, assetUrl('/assets/bg-panorama.png')),
+        loadTexture(loader, assetUrl('/assets/magic-circle.png')),
+        loadTexture(loader, assetUrl('/assets/slash-arc.png')),
       ]),
       loadFxAssets(),
     ])
@@ -60,9 +61,9 @@ async function boot(): Promise<void> {
 
   const fx = new FxManager(scene)
   const hud = new Hud(rig.camera, [
-    { name: 'KNIGHT', portrait: '/assets/knight.png' },
-    { name: 'TANK', portrait: '/assets/tank.png' },
-    { name: 'MAGE', portrait: '/assets/mage.png' },
+    { name: 'KNIGHT', portrait: assetUrl('/assets/knight.png') },
+    { name: 'TANK', portrait: assetUrl('/assets/tank.png') },
+    { name: 'MAGE', portrait: assetUrl('/assets/mage.png') },
   ])
 
   const world: World = { scene, rig, stage, fx, hud, chars, tex: { slash: slashTex, magicCircle: magicCircleTex }, fxAssets }

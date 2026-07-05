@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import { assetUrl } from '../core/assetPath'
 
 /** Blender 製エフェクトメッシュ + image-gen 製テクスチャの束。 */
 export interface FxAssets {
@@ -93,8 +94,8 @@ export async function loadFxAssets(): Promise<FxAssets> {
   ]
 
   const [geos, texs] = await Promise.all([
-    Promise.all(geoDefs.map(([, file]) => loadGeometry(gltfLoader, `/assets/models/${file}`))),
-    Promise.all(texDefs.map(([, file, tile]) => loadFxTexture(texLoader, `/assets/fx/${file}`, tile))),
+    Promise.all(geoDefs.map(([, file]) => loadGeometry(gltfLoader, assetUrl(`/assets/models/${file}`)))),
+    Promise.all(texDefs.map(([, file, tile]) => loadFxTexture(texLoader, assetUrl(`/assets/fx/${file}`), tile))),
   ])
 
   const geo = Object.fromEntries(geoDefs.map(([key], i) => [key, geos[i]])) as FxAssets['geo']
