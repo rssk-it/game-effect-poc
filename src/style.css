@@ -1,0 +1,496 @@
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,500..800;1,500..800&family=Shippori+Mincho+B1:wght@600;700;800&display=swap');
+
+:root {
+  --font-en: 'EB Garamond', 'Times New Roman', serif;
+  --font-jp: 'Shippori Mincho B1', 'Yu Mincho', 'Hiragino Mincho ProN', serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background: #000;
+  overflow: hidden;
+  font-family: var(--font-en), "Segoe UI", "Hiragino Sans", sans-serif;
+  user-select: none;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== 16:9 フレーム ===== */
+#frame {
+  position: relative;
+  width: min(100vw, calc(100vh * 16 / 9));
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: #05060e;
+  /* UI サイズの基準 (フレーム幅の 1/100) */
+  font-size: calc(min(100vw, 100vh * 16 / 9) / 100);
+}
+
+#app, #app canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ===== 画面演出 ===== */
+#flash {
+  position: absolute; inset: 0;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 40;
+}
+
+#vignette {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(5, 4, 18, 0.55) 100%);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.letterbox {
+  position: absolute; left: 0; right: 0;
+  height: 7.5%;
+  background: #000;
+  z-index: 30;
+  pointer-events: none;
+}
+#letterbox-top    { top: 0;    transform: translateY(-101%); }
+#letterbox-bottom { bottom: 0; transform: translateY(101%); }
+
+/* ===== カットイン ===== */
+#cutin {
+  position: absolute; inset: 0;
+  z-index: 35;
+  pointer-events: none;
+  visibility: hidden;
+  overflow: hidden;
+}
+
+.cutin-band {
+  position: absolute;
+  left: -10%; right: -10%;
+  top: 24%;
+  height: 52%;
+  background: linear-gradient(100deg, rgba(20, 6, 46, 0.95), rgba(64, 18, 122, 0.92) 50%, rgba(20, 6, 46, 0.95));
+  border-top: 0.4em solid #c68cff;
+  border-bottom: 0.4em solid #c68cff;
+  transform: skewY(-4deg) scaleX(0);
+  box-shadow: 0 0 4em rgba(150, 80, 255, 0.6);
+}
+
+.cutin-speedlines {
+  position: absolute;
+  left: -10%; right: -10%;
+  top: 24%;
+  height: 52%;
+  transform: skewY(-4deg);
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0em, transparent 3em,
+    rgba(220, 190, 255, 0.28) 3em, rgba(220, 190, 255, 0.28) 3.5em,
+    transparent 3.5em, transparent 9em,
+    rgba(255, 255, 255, 0.16) 9em, rgba(255, 255, 255, 0.16) 9.3em
+  );
+  opacity: 0;
+}
+#cutin.active .cutin-speedlines {
+  opacity: 1;
+  animation: speedlines 0.28s linear infinite;
+}
+@keyframes speedlines {
+  from { background-position-x: 0; }
+  to   { background-position-x: -18em; }
+}
+
+.cutin-art {
+  position: absolute;
+  height: 88%;
+  top: 6%;
+  left: 8%;
+  transform: translateX(120%);
+  filter: drop-shadow(0 0 2em rgba(170, 90, 255, 0.9));
+}
+
+/* ===== HUD ===== */
+#hud {
+  position: absolute; inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+
+/* ---------- ゲージ共通 ---------- */
+.bar-track {
+  position: absolute;
+  inset: 0.18em;
+  border-radius: 0.45em;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.9), rgba(16, 12, 30, 0.9) 55%, rgba(30, 24, 52, 0.9));
+  box-shadow: inset 0 0.15em 0.35em rgba(0, 0, 0, 0.95);
+}
+
+.bar-ghost, .bar-fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 100%;
+  border-radius: 0 0.3em 0.3em 0;
+}
+
+.bar-ghost {
+  background: linear-gradient(180deg, #ffe9bd, #ffb35c 60%, #d97a1e);
+}
+
+.bar-fill {
+  background:
+    /* 上面グロス */
+    linear-gradient(180deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.06) 42%, rgba(255, 255, 255, 0) 50%),
+    /* 斜めストライプ（アニメーション） */
+    repeating-linear-gradient(-58deg,
+      rgba(255, 255, 255, 0.16) 0 0.45em,
+      rgba(255, 255, 255, 0) 0.45em 1.15em),
+    /* ベース色（デフォルト赤系） */
+    linear-gradient(180deg, #ff9d94, #e6274e 48%, #8f0a26);
+  background-size: 100% 100%, 3.2em 100%, 100% 100%;
+  animation: bar-stripes 1.1s linear infinite;
+}
+@keyframes bar-stripes {
+  from { background-position: 0 0, 0 0, 0 0; }
+  to   { background-position: 0 0, 3.2em 0, 0 0; }
+}
+
+/* ゲージ先端の光 */
+.bar-tip {
+  position: absolute;
+  top: -30%; bottom: -30%;
+  left: 100%;
+  width: 0.9em;
+  transform: translateX(-50%);
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.95), rgba(255, 240, 200, 0.4) 55%, transparent);
+  filter: blur(0.5px);
+  animation: tip-pulse 1s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes tip-pulse {
+  0%, 100% { opacity: 0.65; }
+  50%      { opacity: 1; }
+}
+
+/* 周期的に走るシャイン */
+.bar-shine {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.bar-shine::after {
+  content: '';
+  position: absolute;
+  top: -30%; bottom: -30%;
+  width: 22%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.55) 50%, transparent);
+  transform: translateX(-160%) skewX(-18deg);
+  animation: bar-shine 3.2s ease-in-out infinite;
+}
+@keyframes bar-shine {
+  0%       { transform: translateX(-160%) skewX(-18deg); }
+  38%, 100% { transform: translateX(560%) skewX(-18deg); }
+}
+
+/* 目盛り */
+.bar-ticks {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(90deg,
+    transparent 0 calc(10% - 1px),
+    rgba(0, 0, 0, 0.4) calc(10% - 1px) 10%);
+  pointer-events: none;
+}
+
+/* --- ボスプレート --- */
+#boss-plate {
+  position: absolute;
+  top: 3.5%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 46%;
+  opacity: 0;
+}
+.boss-name {
+  font-family: var(--font-en);
+  color: #f3e3ff;
+  font-size: 1.75em;
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  text-align: center;
+  text-shadow: 0 0 0.6em rgba(180, 60, 255, 0.9), 0 0.1em 0.2em #000;
+  margin-bottom: 0.4em;
+}
+.boss-hp {
+  position: relative;
+  height: 1.5em;
+  border-radius: 0.6em;
+  background: linear-gradient(180deg, #4d4266, #17111f 55%, #241b36);
+  border: 1px solid rgba(205, 160, 255, 0.65);
+  box-shadow:
+    0 0 1.2em rgba(150, 60, 255, 0.4),
+    inset 0 0.1em 0.15em rgba(255, 255, 255, 0.35),
+    inset 0 -0.1em 0.2em rgba(0, 0, 0, 0.8);
+}
+
+/* ボスバー両端の装飾キャップ（生成画像） */
+.bar-cap {
+  position: absolute;
+  top: 50%;
+  height: 3.4em;
+  aspect-ratio: 276 / 282;
+  transform: translate(-50%, -50%);
+  background: center / contain no-repeat;
+  filter: drop-shadow(0 0 0.5em rgba(150, 70, 255, 0.55)) drop-shadow(0 0.12em 0.2em rgba(0, 0, 0, 0.8));
+  z-index: 2;
+  pointer-events: none;
+}
+.bar-cap.left  { left: 0;    background-image: url('/assets/gauge-cap-left.png'); }
+.bar-cap.right { left: 100%; background-image: url('/assets/gauge-cap-right.png'); }
+
+/* ボスバー中央上のクレスト（生成画像） */
+.bar-crest {
+  position: absolute;
+  left: 50%;
+  top: -1.15em;
+  height: 2.1em;
+  aspect-ratio: 380 / 216;
+  transform: translateX(-50%);
+  background: url('/assets/gauge-crest.png') center / contain no-repeat;
+  filter: drop-shadow(0 0 0.5em rgba(150, 70, 255, 0.55)) drop-shadow(0 0.12em 0.2em rgba(0, 0, 0, 0.8));
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* --- 味方プレート --- */
+#party-plates {
+  position: absolute;
+  left: 2.5%;
+  bottom: 4%;
+  display: flex;
+  gap: 1.6em;
+  opacity: 0;
+}
+.plate {
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  background: linear-gradient(160deg, rgba(18, 24, 52, 0.88), rgba(8, 10, 26, 0.88));
+  border: 1px solid rgba(120, 160, 255, 0.45);
+  border-radius: 0.8em;
+  padding: 0.55em 1.1em 0.55em 0.55em;
+  box-shadow: 0 0.3em 1.2em rgba(0, 0, 0, 0.6);
+  transition: filter 0.2s;
+}
+.plate.acting {
+  filter: brightness(1.35) drop-shadow(0 0 0.8em rgba(140, 190, 255, 0.8));
+}
+.plate-portrait {
+  width: 4.4em; height: 4.4em;
+  border-radius: 0.6em;
+  border: 1px solid rgba(150, 180, 255, 0.5);
+  background-size: 190%;
+  background-position: 50% 12%;
+  background-color: #101430;
+}
+.plate-info { width: 10.5em; }
+.plate-name {
+  font-family: var(--font-en);
+  color: #dce6ff;
+  font-size: 1.15em;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  margin-bottom: 0.35em;
+  text-shadow: 0 0.1em 0.2em #000;
+}
+.plate-hp {
+  position: relative;
+  height: 1em;
+  border-radius: 0.5em;
+  background: linear-gradient(180deg, #3a4a66, #101624 55%, #1c2740);
+  border: 1px solid rgba(140, 190, 255, 0.5);
+  box-shadow:
+    inset 0 0.1em 0.12em rgba(255, 255, 255, 0.3),
+    inset 0 -0.1em 0.18em rgba(0, 0, 0, 0.8);
+}
+.plate-hp .bar-track { inset: 0.14em; }
+.plate-hp .bar-fill {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.06) 42%, rgba(255, 255, 255, 0) 50%),
+    repeating-linear-gradient(-58deg,
+      rgba(255, 255, 255, 0.16) 0 0.4em,
+      rgba(255, 255, 255, 0) 0.4em 1em),
+    linear-gradient(180deg, #b8ffd6, #22c368 48%, #0a7a3c);
+  background-size: 100% 100%, 2.8em 100%, 100% 100%;
+}
+.plate-hp .bar-tip { width: 0.7em; }
+
+/* --- ターンバナー --- */
+#turn-banner {
+  position: absolute;
+  top: 16%;
+  left: 0;
+  transform: translateX(-105%);
+  background: linear-gradient(95deg, rgba(16, 30, 80, 0.95) 60%, rgba(16, 30, 80, 0));
+  border-left: 0.5em solid #7db4ff;
+  padding: 0.5em 6em 0.5em 2em;
+}
+#turn-banner span {
+  display: inline-block;
+  font-family: var(--font-en);
+  color: #eaf2ff;
+  font-size: 2.1em;
+  font-weight: 700;
+  font-style: italic;
+  letter-spacing: 0.2em;
+  text-shadow: 0 0 0.5em rgba(90, 160, 255, 0.9), 0 0.12em 0.15em #000;
+}
+#turn-banner.enemy {
+  background: linear-gradient(95deg, rgba(80, 10, 22, 0.95) 60%, rgba(80, 10, 22, 0));
+  border-left-color: #ff6d6d;
+}
+#turn-banner.enemy span {
+  text-shadow: 0 0 0.5em rgba(255, 80, 80, 0.9), 0 0.12em 0.15em #000;
+}
+
+/* --- スキル名バナー --- */
+#skill-banner {
+  position: absolute;
+  bottom: 13%;
+  left: 50%;
+  transform: translateX(-50%) skewX(-8deg) scaleX(0);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: linear-gradient(90deg, transparent, rgba(10, 14, 40, 0.92) 18%, rgba(30, 40, 110, 0.94) 50%, rgba(10, 14, 40, 0.92) 82%, transparent);
+  border-top: 1px solid rgba(160, 200, 255, 0.8);
+  border-bottom: 1px solid rgba(160, 200, 255, 0.8);
+  padding: 0.3em 4.5em 0.42em;
+}
+#skill-banner .skill-sub {
+  font-family: var(--font-en);
+  color: rgba(200, 220, 255, 0.85);
+  font-size: 0.95em;
+  font-weight: 600;
+  letter-spacing: 0.55em;
+  text-indent: 0.55em;
+  white-space: nowrap;
+  text-shadow: 0 0.1em 0.15em #000;
+}
+#skill-banner .skill-main {
+  font-family: var(--font-jp);
+  color: #fff;
+  font-size: 2.7em;
+  font-weight: 800;
+  letter-spacing: 0.34em;
+  text-indent: 0.34em;
+  white-space: nowrap;
+  line-height: 1.15;
+  text-shadow: 0 0 0.7em rgba(120, 180, 255, 1), 0 0.1em 0.15em #000;
+}
+#skill-banner.ultimate {
+  background: linear-gradient(90deg, transparent, rgba(36, 8, 60, 0.94) 18%, rgba(96, 24, 160, 0.96) 50%, rgba(36, 8, 60, 0.94) 82%, transparent);
+  border-color: rgba(220, 160, 255, 0.9);
+}
+#skill-banner.ultimate .skill-sub {
+  color: rgba(235, 205, 255, 0.9);
+}
+#skill-banner.ultimate .skill-main {
+  text-shadow: 0 0 0.8em rgba(210, 120, 255, 1), 0 0.1em 0.15em #000;
+}
+
+/* --- センタータイトル --- */
+#center-title {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-en);
+  font-size: 7.5em;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-indent: 0.22em;
+  white-space: nowrap;
+  color: #fff;
+  /* 注意: background ショートハンドを使うと background-clip がリセットされ、
+     グラデーションの矩形がそのまま表示されてしまう。必ず longhand で指定する。 */
+  background-image: linear-gradient(180deg, #ffffff 20%, #9ec4ff 55%, #3e6dff 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 0.25em rgba(110, 170, 255, 0.95)) drop-shadow(0 0.06em 0.05em rgba(0,0,0,0.9));
+  opacity: 0;
+}
+#center-title.victory {
+  background-image: linear-gradient(180deg, #fffbe8 15%, #ffd76a 55%, #e88a00 90%);
+  filter: drop-shadow(0 0 0.3em rgba(255, 200, 80, 0.95)) drop-shadow(0 0.06em 0.05em rgba(0,0,0,0.9));
+}
+
+/* --- リプレイ --- */
+#replay {
+  position: absolute;
+  bottom: 6%;
+  right: 3.5%;
+  pointer-events: auto;
+  display: none;
+  font-family: var(--font-en);
+  font-size: 1.6em;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  color: #ffedc2;
+  background: linear-gradient(180deg, rgba(70, 50, 10, 0.9), rgba(30, 20, 4, 0.9));
+  border: 1px solid rgba(255, 210, 120, 0.7);
+  border-radius: 2em;
+  padding: 0.55em 2.2em;
+  cursor: pointer;
+  text-shadow: 0 0 0.4em rgba(255, 190, 80, 0.8);
+  box-shadow: 0 0 1.2em rgba(255, 180, 60, 0.35);
+}
+#replay:hover { filter: brightness(1.3); }
+
+/* ===== ダメージ数字 ===== */
+#damage-layer {
+  position: absolute; inset: 0;
+  z-index: 25;
+  pointer-events: none;
+  overflow: hidden;
+}
+.dmg {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-en);
+  font-size: 2.7em;
+  font-weight: 800;
+  font-style: italic;
+  color: #fff;
+  -webkit-text-stroke: 0.04em #1a2340;
+  text-shadow: 0 0.12em 0.25em rgba(0, 0, 0, 0.85);
+  will-change: transform, opacity;
+}
+.dmg.crit {
+  font-size: 3.7em;
+  color: #ffd94e;
+  -webkit-text-stroke: 0.04em #7a3c00;
+}
+.dmg.ally {
+  color: #ff8d8d;
+  -webkit-text-stroke: 0.04em #4d0a14;
+}
+.dmg.ultimate {
+  font-size: 5em;
+  color: #e9b8ff;
+  -webkit-text-stroke: 0.035em #4d0a7a;
+}

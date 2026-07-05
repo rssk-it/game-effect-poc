@@ -1,2 +1,9 @@
 .env*
 !.env.example
+
+# 依存関係・ビルド成果物
+node_modules/
+dist/
+
+# image-gen の一時出力（採用したアセットは public/assets/ にコピーする）
+scripts/image-gen/output/

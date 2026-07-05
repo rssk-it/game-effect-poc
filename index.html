@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2.5D Battle Demo</title>
+</head>
+<body>
+  <div id="frame">
+    <div id="app"></div>
+
+    <!-- 画面演出オーバーレイ -->
+    <div id="flash"></div>
+    <div id="vignette"></div>
+    <div class="letterbox" id="letterbox-top"></div>
+    <div class="letterbox" id="letterbox-bottom"></div>
+
+    <!-- カットイン -->
+    <div id="cutin">
+      <div class="cutin-band"></div>
+      <div class="cutin-speedlines"></div>
+      <img class="cutin-art" src="/assets/cutin-mage.png" alt="" />
+    </div>
+
+    <!-- HUD -->
+    <div id="hud">
+      <div id="boss-plate">
+        <div class="boss-name">FENRIR, THE MOON DEVOURER</div>
+        <div class="boss-hp">
+          <div class="bar-track">
+            <div class="bar-ghost boss-hp-ghost"></div>
+            <div class="bar-fill boss-hp-fill"></div>
+            <div class="bar-ticks"></div>
+            <div class="bar-tip"></div>
+            <div class="bar-shine"></div>
+          </div>
+          <div class="bar-cap left"></div>
+          <div class="bar-cap right"></div>
+          <div class="bar-crest"></div>
+        </div>
+      </div>
+      <div id="party-plates"></div>
+      <div id="turn-banner"><span></span></div>
+      <div id="skill-banner"><span class="skill-sub"></span><span class="skill-main"></span></div>
+      <div id="center-title"></div>
+      <button id="replay">▶ REPLAY</button>
+    </div>
+
+    <!-- ダメージ数字 -->
+    <div id="damage-layer"></div>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
