@@ -91,9 +91,9 @@ async function intro(world: World): Promise<void> {
   const { rig, hud, chars } = world
 
   hud.letterbox(true, 0)
-  // ボスの寄りから開始
-  rig.position.set(HOME.boss.x - 2, 1.6, 7)
-  rig.target.set(HOME.boss.x, 3.4, HOME.boss.z)
+  // ボスの寄りから開始（咆哮リングが収まる程度に距離をとる）
+  rig.position.set(HOME.boss.x - 2.5, 1.8, 10.5)
+  rig.target.set(HOME.boss.x, 3.2, HOME.boss.z)
   await sleep(0.6)
 
   // ボスが吠える: 集中線 + 激しいシェイク + FOVパンチ
@@ -174,7 +174,7 @@ async function knightSlashTurn(world: World): Promise<void> {
   dustPuff(fx, knight.position, -1, 1.2)
   const attackPos = HOME.boss.x - 3.4
   gsap.to(knight.root.position, { x: attackPos, duration: 0.34, ease: 'power2.in' })
-  rig.focusOn(new THREE.Vector3(attackPos + 1.6, 0, 0), { distance: 7.5, azimuth: -14, height: 2.8, lookHeight: 2.4, duration: 0.42 })
+  rig.focusOn(new THREE.Vector3(attackPos + 1.6, 0, 0), { distance: 9.5, azimuth: -14, height: 3.0, lookHeight: 2.4, duration: 0.42 })
   await sleep(0.42)
   dustPuff(fx, knight.position, 1, 1)
 
@@ -231,8 +231,8 @@ async function bossTurn(world: World): Promise<void> {
 
   await hud.showTurnBanner('ENEMY TURN', true)
 
-  // ローアングルでボスへ
-  rig.focusOn(boss.position, { distance: 8, azimuth: -20, height: 1.1, lookHeight: 3.2, duration: 0.8 })
+  // ローアングルでボスへ（咆哮リングが見切れないよう距離をとる）
+  rig.focusOn(boss.position, { distance: 12, azimuth: -20, height: 1.4, lookHeight: 3.2, duration: 0.8 })
   await sleep(0.85)
 
   // 咆哮
@@ -303,7 +303,7 @@ async function tankFrostTurn(world: World): Promise<void> {
   const attackPos = HOME.boss.x - 3.2
   gsap.to(tank.root.position, { x: attackPos, duration: 0.4, ease: 'power3.in' })
   // カメラは突進を横から追う
-  rig.moveTo(new THREE.Vector3(1.5, 2, 12), new THREE.Vector3(2.5, 2.4, 0), 0.45, 'power2.inOut')
+  rig.moveTo(new THREE.Vector3(2.0, 2.6, 14.5), new THREE.Vector3(3.2, 2.4, 0), 0.45, 'power2.inOut')
   await sleep(0.44)
 
   // 氷牙氷結: ボスの足元から氷晶がせり上がり、氷の衝撃波が走る
@@ -349,7 +349,7 @@ async function tankShockTurn(world: World): Promise<void> {
   dustPuff(fx, tank.position, -1, 1.4)
   const attackPos = HOME.boss.x - 3.2
   gsap.to(tank.root.position, { x: attackPos, duration: 0.4, ease: 'power3.in' })
-  rig.moveTo(new THREE.Vector3(1.5, 2, 12), new THREE.Vector3(2.5, 2.4, 0), 0.45, 'power2.inOut')
+  rig.moveTo(new THREE.Vector3(2.0, 2.6, 14.5), new THREE.Vector3(3.2, 2.4, 0), 0.45, 'power2.inOut')
   await sleep(0.44)
 
   // 大地衝撃波: 地を打ち、二段の衝撃波と石破砕が走る
@@ -392,8 +392,8 @@ async function mageLightningTurn(world: World): Promise<void> {
   chargeParticles(fx, mage.chest(0.4), 0x9fc8ff)
   await sleep(0.8)
 
-  // カメラをボスへカットして落雷
-  rig.focusOn(boss.position, { distance: 9, azimuth: -18, height: 2.6, lookHeight: 3.0, duration: 0.35, ease: 'power2.out' })
+  // カメラをボスへカットして落雷（上空からの稲妻が収まるよう距離をとる）
+  rig.focusOn(boss.position, { distance: 13, azimuth: -18, height: 3.2, lookHeight: 3.6, duration: 0.35, ease: 'power2.out' })
   await sleep(0.4)
 
   new LightningStrike(fx, boss.position, { strikes: 3 })
@@ -481,7 +481,8 @@ async function mageJudgement(world: World): Promise<void> {
   boss.tintRed(1.4)
 
   // 発射を見せたらカメラをボスへパンし、連続ヒット〜撃破を正面で見せる
-  rig.focusOn(boss.position, { distance: 9.5, azimuth: -20, height: 2.8, lookHeight: 2.8, duration: 1.0 })
+  // （天からの光条・光柱・衝撃波が収まるよう距離をとる）
+  rig.focusOn(boss.position, { distance: 14, azimuth: -20, height: 3.4, lookHeight: 3.2, duration: 1.0 })
 
   // 光条の連続ヒット
   for (let i = 0; i < 4; i++) {
@@ -506,7 +507,7 @@ async function mageJudgement(world: World): Promise<void> {
 
   // ボス崩壊をスローで見せる（金の光に還る）
   setTimeScale(0.4)
-  rig.focusOn(boss.position, { distance: 8, azimuth: -18, height: 2.6, lookHeight: 2.6, duration: 0.6 })
+  rig.focusOn(boss.position, { distance: 11, azimuth: -18, height: 2.8, lookHeight: 2.6, duration: 0.6 })
   boss.dissolve(1.7)
   fx.add(
     new ParticleBurst(scene, {
